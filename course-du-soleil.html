@@ -64,6 +64,7 @@ label{display:flex;gap:6px;align-items:center;color:var(--muted)}
   #c,#pano,#wmap{grid-column:1;grid-row:3;height:100%}
   #panel{grid-column:2;grid-row:3;max-height:none;width:auto;max-width:none;margin:0 12px 12px 0;align-self:start;max-height:100%}
   #panel.mini{align-self:start}
+  #mini{display:none}
 }
 .views{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:4px 12px 6px}
 .views::-webkit-scrollbar{display:none}
@@ -113,6 +114,7 @@ label{display:flex;gap:6px;align-items:center;color:var(--muted)}
 <button data-k="moo" aria-pressed="true">Lune</button>
 <button data-k="sea" aria-pressed="false">Saisons</button>
 <button data-k="axe" aria-pressed="false">Axe du monde</button>
+<button data-k="lab" aria-pressed="true" hidden>Légende</button>
 <button data-k="ana" aria-pressed="false">Analemme</button>
 <button data-k="gno" aria-pressed="false">Gnomon</button>
 <button data-k="ecl" aria-pressed="false">Écliptique</button>
@@ -244,6 +246,7 @@ function label(txt,o={}){
   x.fillStyle=color; x.fillText(txt,w/2,64);
   const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,opacity:alpha,depthWrite:false,depthTest:!bg}));
   if(bg)s.renderOrder=10;
+  s.userData.lbl=true;
   s.scale.set(size*w/128,size,1); return s;
 }
 function lineOf(pts,color,op){return new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color,transparent:true,opacity:op}));}
@@ -381,7 +384,7 @@ const eclLab=label('écliptique',{size:.85,color:'#ff9be6',bg:true}); eclMarks.a
 const matDay=mk(0xffc23d,1), matNight=mk(0x9db0ff,.85);
 const mSumA=mk(0xff7a8a,.95), mSumB=mk(0xff7a8a,.3), mEqA=mk(0xffffff,.85), mEqB=mk(0xffffff,.25), mWinA=mk(0x6fe0ff,.95), mWinB=mk(0x6fe0ff,.3), mAx=mk(0xc9a7ff,.95), mAxB=mk(0xc9a7ff,.35);
 
-const show={sea:false,axe:false,ana:false,gno:false,ecl:false,nxt:false,moo:true};
+const show={sea:false,axe:false,ana:false,gno:false,ecl:false,nxt:false,moo:true,lab:true};
 let seaGroup, axeGroup;
 function circleDec(dec){const vs=[];for(let i=0;i<=144;i++){const p=hz(i/144*2*Math.PI,dec*RAD);vs.push(dir(p.alt,p.az,R));}return vs;}
 function buildSky(){
@@ -400,6 +403,8 @@ function buildSky(){
   applyShow();
 }
 function applyShow(){
+  // vue Terre : les étiquettes sont sur un calque à part, affiché ou non par le bouton Légende
+  if(typeof escene!=='undefined'){escene.traverse(o=>{if(o.userData.lbl)o.layers.set(1);}); if(show.lab)camE.layers.enable(1); else camE.layers.disable(1);}
   if(seaGroup)seaGroup.visible=show.sea; if(axeGroup)axeGroup.visible=show.axe;
   anaGroup.visible=show.ana; eclGroup.visible=show.ecl; eclMarks.visible=show.ecl; gnomon.visible=show.gno;
   eAxis.visible=show.axe; eEcl.visible=show.ecl; eSea.visible=show.sea; eGno.visible=show.gno;
@@ -672,7 +677,7 @@ $('earth').addEventListener('click',()=>{
   earthMode=!earthMode; $('earth').textContent=earthMode?'Ciel':'Terre';
   if(earthMode){savedShow={...show}; show.axe=show.sea=show.ecl=true;}
   else if(savedShow){Object.assign(show,savedShow); savedShow=null;}
-  document.querySelector('[data-k="ana"]').hidden=earthMode;
+  document.querySelector('[data-k="ana"]').hidden=earthMode; document.querySelector('[data-k="lab"]').hidden=!earthMode;
   applyShow(); update(minute);
 });
 
@@ -906,7 +911,7 @@ function riseSet(s0,len){
 $('view').addEventListener('click',()=>{
   stopCompass();
   if(map2d)setMap(false);
-  if(earthMode){earthMode=false;$('earth').textContent='Terre';document.querySelector('[data-k="ana"]').hidden=false;if(savedShow){Object.assign(show,savedShow);savedShow=null;}}
+  if(earthMode){earthMode=false;$('earth').textContent='Terre';document.querySelector('[data-k="ana"]').hidden=false;document.querySelector('[data-k="lab"]').hidden=true;if(savedShow){Object.assign(show,savedShow);savedShow=null;}}
   document.querySelector('[data-k="nxt"]').hidden=pano2d; if(pano2d)show.nxt=false;
   pano2d=!pano2d; cv.hidden=pano2d; pano.hidden=!pano2d;
   $('view').textContent=pano2d?'Vue 3D':'Panorama'; applyShow();
@@ -922,9 +927,13 @@ function setCam(){
 }
 const ptrs=new Map(); let pd=0;
 const pinch=()=>{const a=[...ptrs.values()];return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
-function zoom(k){if(compass||immersive){cFov=clamp(cFov*k,30,95);return;}if(earthMode)OE.d=clamp(OE.d*k,fitE*.4,fitE*1.8);else O.d=clamp(O.d*k,fit*.5,fit*1.6);}
-$('reset').addEventListener('click',()=>{stopCompass();IM.yaw=Math.PI;IM.pitch=.25;cFov=70;O.th=Math.PI;O.phi=.42;O.d=fit;OE.th=.45;OE.phi=.3;OE.d=fitE;});
+function zoom(k){if(compass||immersive){cFov=clamp(cFov*k,30,115);return;}if(earthMode)OE.d=clamp(OE.d*k,fitE*.4,fitE*1.8);else O.d=clamp(O.d*k,fit*.5,fit*1.6);}
+$('reset').addEventListener('click',()=>{stopCompass();IM.yaw=Math.PI;IM.pitch=.25;cFov=FOV0;O.th=Math.PI;O.phi=.42;O.d=fit;OE.th=.45;OE.phi=.3;OE.d=fitE;});
 $('mini').addEventListener('click',()=>{const m=$('panel').classList.toggle('mini');$('mini').setAttribute('aria-pressed',m);$('mini').setAttribute('aria-expanded',!m);});
+// grand écran : commandes sur le côté, le mode Zoom n’a pas lieu d’être
+const wideMQ=matchMedia('(min-width:900px) and (orientation:landscape)');
+function onWide(){if(wideMQ.matches&&$('panel').classList.contains('mini')){$('panel').classList.remove('mini');$('mini').setAttribute('aria-pressed',false);$('mini').setAttribute('aria-expanded',true);}}
+wideMQ.addEventListener?wideMQ.addEventListener('change',onWide):wideMQ.addListener(onWide);
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});pd=pinch();});
 cv.addEventListener('pointermove',e=>{
   const p=ptrs.get(e.pointerId); if(!p)return;
@@ -938,7 +947,8 @@ cv.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(e.deltaY*.001))
 
 
 // Boussole : la vue suit l'orientation du téléphone (boussole et capteurs d'inclinaison)
-let compass=false, cFov=70, cGot=false, cTimer=0, toastT=0, absOK=false, cAny=false, cNull=false, cSensor=null, cFall=0;
+const FOV0=95;   // champ de vision de la boussole (en degrés, à la verticale de l’écran)
+let compass=false, cFov=FOV0, cGot=false, cTimer=0, toastT=0, absOK=false, cAny=false, cNull=false, cSensor=null, cFall=0;
 const cTarget=new THREE.Quaternion(), cEuler=new THREE.Euler(), cQ0=new THREE.Quaternion(), cQ1=new THREE.Quaternion(-Math.sqrt(.5),0,0,Math.sqrt(.5)), cZ=new THREE.Vector3(0,0,1);
 function toast(msg,ms){const el=$('toast');clearTimeout(toastT);el.style.top=Math.max(8,cv.getBoundingClientRect().top+10)+'px';el.textContent=msg;if(ms)toastT=setTimeout(()=>{el.textContent='';},ms);}
 function screenAngle(){return ((screen.orientation&&screen.orientation.angle)||window.orientation||0)*RAD;}
@@ -989,7 +999,7 @@ async function startCompass(){
     catch(err){toast('Accès aux capteurs impossible : '+err.message,5000);return;}
   }
   if(curView!=='pano3'){prevView=curView; setView('pano3');}
-  compass=true; cGot=false; absOK=false; cFov=70;
+  compass=true; cGot=false; absOK=false; cFov=FOV0;
   ground.material.opacity=.55;
   $('compass').setAttribute('aria-pressed','true');
   window.addEventListener('deviceorientationabsolute',onAbs); window.addEventListener('deviceorientation',onRel);
@@ -1025,7 +1035,7 @@ function setView(v){
     if(immersive){immersive=false; ground.material.opacity=.9; me.visible=true; applyShow();}
     if(map2d)setMap(false); if(earthMode)$('earth').click(); if(pano2d)$('view').click();
     if(v==='map')setMap(true); else if(v==='earth')$('earth').click(); else if(v==='pano2')$('view').click();
-    else if(v==='pano3'){immersive=true; cFov=70; IM.yaw=loc.lat>=0?Math.PI:0; IM.pitch=.25;}
+    else if(v==='pano3'){immersive=true; cFov=FOV0; IM.yaw=loc.lat>=0?Math.PI:0; IM.pitch=.25;}
   }
   curView=v;
   document.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
@@ -1128,7 +1138,7 @@ function resize(){
   const w=cv.clientWidth,h=cv.clientHeight; if(!w||!h)return;
   renderer.setSize(w,h,false); cam.aspect=w/h;
   fit=(R+2.3)/(Math.tan(22.5*RAD)*Math.min(1,cam.aspect)); O.d=fit; cam.updateProjectionMatrix();
-  camE.aspect=cam.aspect; camE.updateProjectionMatrix(); fitE=5.8/(Math.tan(22.5*RAD)*Math.min(1,cam.aspect)); OE.d=fitE;
+  camE.aspect=cam.aspect; camE.updateProjectionMatrix(); fitE=Math.max(5.2/Math.tan(22.5*RAD),5.6/(Math.tan(22.5*RAD)*cam.aspect)); OE.d=fitE;   // la Terre en grand ; on peut dézoomer pour voir toute l’orbite de la Lune
 }
 new ResizeObserver(resize).observe(cv);
 function loop(ts){
