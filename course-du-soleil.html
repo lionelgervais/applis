@@ -15,15 +15,21 @@ html,body{height:100%;margin:0;background:#0a0f24;color:var(--ink);font-family:"
 header{flex:0 0 auto;padding:8px 12px 2px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 h1{margin:0;font-size:1.1rem;font-weight:600}
 header p{margin:2px 0 0;font-size:.82rem;color:#e8ecf6}
-header p.by{font-size:.72rem;color:var(--muted);margin:0;text-align:right}
+.ht{min-width:0;flex:1 1 auto}
+.tl{display:flex;align-items:baseline;gap:10px;white-space:nowrap;min-width:0}
+.tl .by{font-size:.72rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
 .hr{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 canvas{position:relative;flex:1 1 auto;min-height:0;width:100%;display:block;touch-action:none;cursor:grab}
 canvas[hidden]{display:none}
 #pano{cursor:default}
 #wmap{cursor:crosshair;touch-action:manipulation}
-#app.map2d [data-k]:not([data-k="sea"]),#app.map2d #reset{display:none}
+#app.map2d [data-k]:not([data-k="sea"]):not([data-k="moo"]),#app.map2d #reset{display:none}
+.moonrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 8px;margin:-2px 0 8px;padding-top:6px;border-top:1px solid var(--line)}
+.moonrow dd{font-size:.86rem}
+#mNext{grid-column:1/-1;font-size:.75rem;color:var(--muted);margin:0}
+#app.nomoon .moonrow{display:none}
 .hb{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-#panel{flex:0 0 auto;margin:0 auto 12px;width:calc(100% - 24px);max-width:600px;max-height:45vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px 12px}
+#panel{flex:0 0 auto;margin:0 auto 10px;width:calc(100% - 24px);max-width:600px;max-height:38vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px 12px}
 #panel.mini>*:not(.top):not(#tm){display:none}
 #panel.mini .top{margin-bottom:4px}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;height:2.7em;overflow:hidden;line-height:1.35}
@@ -48,13 +54,34 @@ label{display:flex;gap:6px;align-items:center;color:var(--muted)}
 .note{margin:8px 0 0;color:var(--muted);font-size:.75rem;line-height:1.4}
 #err{color:#ffb4a0;font-size:.78rem}
 #err:empty{display:none}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 76px);transform:translateX(-50%);max-width:min(92vw,460px);background:rgba(5,8,20,.88);color:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.82rem;line-height:1.4;text-align:center;z-index:20;pointer-events:none;transition:opacity .4s}
+#toast:empty{display:none}
+#compass[hidden]{display:none}
+/* écran large : commandes sur le côté, la figure occupe toute la hauteur */
+@media (min-width:900px) and (orientation:landscape){
+  #app{display:grid;grid-template-columns:minmax(0,1fr) 390px;grid-template-rows:auto auto minmax(0,1fr)}
+  header,.views{grid-column:1/-1}
+  #c,#pano,#wmap{grid-column:1;grid-row:3;height:100%}
+  #panel{grid-column:2;grid-row:3;max-height:none;width:auto;max-width:none;margin:0 12px 12px 0;align-self:start;max-height:100%}
+  #panel.mini{align-self:start}
+}
+.views{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:4px 12px 6px}
+.views::-webkit-scrollbar{display:none}
+.views button{flex:0 0 auto}
+.views button[data-v][aria-pressed="true"]{background:var(--sun);color:#1b1405;border-color:transparent}
+.views .sm{display:none}
+@media (max-width:480px){.views button{padding:6px 8px;font-size:.76rem}.views{gap:4px;padding-left:8px;padding-right:8px}}
+@media (max-width:375px){.views button{padding:5px 6px;font-size:.72rem}.views{gap:3px;padding-left:6px;padding-right:6px}}
 </style>
 </head>
 <body>
 <div id="app">
-<header><div><h1>Course du soleil</h1><p id="where"></p></div><div class="hr"><div class="hb"><button id="wm">Carte</button><button id="earth">Terre</button><button id="view">Panorama</button><button id="mini" aria-expanded="true" aria-controls="panel">Zoom</button></div><p class="by">Auteur : Lionel GERVAIS</p></div></header>
+<header><div class="ht"><div class="tl"><h1>Course du soleil</h1><span class="by">Auteur : Lionel GERVAIS</span></div><p id="where"></p></div></header>
+<nav class="views" aria-label="Choix de la vue"><button data-v="map">Carte</button><button data-v="sky">Ciel 3D</button><button data-v="pano2">Ciel 2D</button><button data-v="earth">Terre</button><button id="compass" aria-pressed="false" hidden>Boussole</button><button id="mini" aria-expanded="true" aria-pressed="false" aria-controls="panel">Zoom</button></nav>
+<span hidden><button id="wm"></button><button id="earth"></button><button id="view"></button></span>
 <canvas id="c"></canvas>
-<canvas id="pano" hidden aria-label="Panorama du ciel vu depuis le sol"></canvas>
+<div id="toast" role="status" aria-live="polite"></div>
+<canvas id="pano" hidden aria-label="Ciel 2D : le ciel vu depuis le sol, déroulé à plat"></canvas>
 <canvas id="wmap" hidden role="img" aria-label="Carte du monde montrant les zones de jour et de nuit"></canvas>
 <section id="panel">
 <div class="top"><span id="phase"></span><span id="clock"></span></div>
@@ -65,6 +92,12 @@ label{display:flex;gap:6px;align-items:center;color:var(--muted)}
 <div><dt>Lever</dt><dd id="rise"></dd></div>
 <div><dt>Midi solaire</dt><dd id="noon"></dd></div>
 <div><dt>Coucher</dt><dd id="set"></dd></div>
+</dl>
+<dl class="moonrow" aria-label="La Lune">
+<div><dt>Lune</dt><dd id="mPhase"></dd></div>
+<div><dt>Lever de la Lune</dt><dd id="mRise"></dd></div>
+<div><dt>Coucher de la Lune</dt><dd id="mSet"></dd></div>
+<p id="mNext"></p>
 </dl>
 <input type="range" id="tm" min="0" max="1439" step="1" aria-label="Heure de la journée">
 <div class="row">
@@ -77,6 +110,7 @@ label{display:flex;gap:6px;align-items:center;color:var(--muted)}
 <button id="reset">Vue initiale</button>
 </div>
 <div class="row" role="group" aria-label="Affichage">
+<button data-k="moo" aria-pressed="true">Lune</button>
 <button data-k="sea" aria-pressed="false">Saisons</button>
 <button data-k="axe" aria-pressed="false">Axe du monde</button>
 <button data-k="ana" aria-pressed="false">Analemme</button>
@@ -97,8 +131,11 @@ label{display:flex;gap:6px;align-items:center;color:var(--muted)}
 <span><i style="background:#c9a7ff"></i>Axe et équateur céleste</span>
 <span><i style="background:#b6f09c"></i>Analemme</span>
 <span><i style="background:#ff5fd2"></i>Écliptique</span>
+<span><i style="background:#d6deec"></i>Lune</span>
 </div>
 <p class="note">Lever et coucher suivent la définition officielle (bord supérieur du soleil, réfraction comprise). L’analemme montre où se trouve le soleil à l’heure affichée, en heure d’hiver, sur toute l’année (un point clair par premier du mois) : sa forme en 8 vient de l’inclinaison de l’axe terrestre et de l’orbite elliptique. Pour un point choisi en touchant la carte, les heures sont données en heure solaire approchée ; avec « Ma position », elles suivent le fuseau horaire de l’appareil.</p>
+<p class="note">Lune : sa trajectoire est tracée en gris argenté (pointillés sous l’horizon) sur environ 24 h 50, le temps qu’elle revienne au même endroit du ciel ; les deux bouts ne se rejoignent pas exactement, car la Lune monte un peu plus haut ou un peu moins haut chaque jour et son disque montre la phase réelle, côté éclairé tourné vers le Soleil. Positions calculées avec une théorie simplifiée, parallaxe comprise : quelques minutes d’écart possibles sur le lever et le coucher. Dans la vue Terre, l’orbite de la Lune n’est pas à l’échelle : elle montre pourquoi la Lune est pleine à l’opposé du Soleil et nouvelle de son côté.</p>
+<p class="note">Ciel 2D : le ciel déroulé à plat, face au sud. Boussole (sur téléphone ou tablette, depuis une adresse https) : vous êtes au centre du ciel, à hauteur des yeux, et la vue 3D suit l’orientation de l’appareil ; tenez-le devant vous pour voir la trajectoire du soleil dans la vraie direction du ciel. Pincez pour zoomer. Si le nord semble décalé, décrivez un 8 avec le téléphone pour calibrer sa boussole, et éloignez-vous des objets métalliques.</p>
 <p class="note">Carte : la partie claire est éclairée par le Soleil, les bandes de plus en plus sombres sont les crépuscules civil (soleil jusqu’à 6° sous l’horizon), nautique (12°) et astronomique (18°), puis la nuit. Le point jaune marque l’endroit où le Soleil est au zénith ; la bande de droite donne la durée du jour pour chaque latitude, alignée avec la carte. Toucher la carte choisit ce lieu comme point d’observation.</p>
 </details>
 </section>
@@ -145,6 +182,38 @@ function hz(H,dec){
   return {alt,az:mod(az,2*Math.PI)};
 }
 function sunPos(ms){const e=sunEq(ms);return hz((e.gmst+loc.lon)*RAD-e.ra,e.dec);}
+// Lune : théorie simplifiée (principaux termes périodiques), précision de l’ordre de 0,2°
+function moonEq(ms){
+  const d=ms/86400000+2440587.5-2451545.0;
+  const L=218.316+13.176396*d, Mp=(134.963+13.064993*d)*RAD, M=(357.529+0.98560028*d)*RAD, D=(297.850+12.190749*d)*RAD, F=(93.272+13.229350*d)*RAD;
+  const lam=(L+6.289*Math.sin(Mp)+1.274*Math.sin(2*D-Mp)+0.658*Math.sin(2*D)+0.214*Math.sin(2*Mp)-0.186*Math.sin(M)-0.114*Math.sin(2*F))*RAD;
+  const bet=(5.128*Math.sin(F)+0.281*Math.sin(Mp+F)+0.278*Math.sin(Mp-F)+0.173*Math.sin(2*D-F))*RAD;
+  const dist=385001-20905*Math.cos(Mp)-3699*Math.cos(2*D-Mp)-2956*Math.cos(2*D);
+  const eps=(23.439-4e-7*d)*RAD;
+  const ra=Math.atan2(Math.sin(lam)*Math.cos(eps)-Math.tan(bet)*Math.sin(eps),Math.cos(lam));
+  const dec=Math.asin(Math.sin(bet)*Math.cos(eps)+Math.cos(bet)*Math.sin(eps)*Math.sin(lam));
+  return {ra,dec,dist,lam,bet,gmst:mod(280.46061837+360.98564736629*d,360)};
+}
+function moonPos(ms){   // vue depuis le lieu : hauteur corrigée de la parallaxe (jusqu’à 1°)
+  const m=moonEq(ms), p=hz((m.gmst+loc.lon)*RAD-m.ra,m.dec);
+  p.alt-=Math.asin(6378.14/m.dist*Math.cos(p.alt)); return p;
+}
+function sunLam(ms){const n=ms/86400000+2440587.5-2451545.0,g=mod(357.528+0.9856003*n,360)*RAD;return (280.460+0.9856474*n+1.915*Math.sin(g)+0.020*Math.sin(2*g))*RAD;}
+// élongation (0 = nouvelle lune, 180 = pleine lune) et fraction éclairée
+function moonPhase(ms){
+  const m=moonEq(ms), e=sunEq(ms);
+  const cpsi=Math.sin(e.dec)*Math.sin(m.dec)+Math.cos(e.dec)*Math.cos(m.dec)*Math.cos(e.ra-m.ra);
+  const psi=Math.acos(clamp(cpsi,-1,1)), i=Math.atan2(149598000*Math.sin(psi),m.dist-149598000*Math.cos(psi));
+  return {E:mod((m.lam-sunLam(ms))/RAD,360),k:(1+Math.cos(i))/2};
+}
+const PHN=[[10,'Nouvelle lune'],[80,'Premier croissant'],[100,'Premier quartier'],[170,'Gibbeuse croissante'],[190,'Pleine lune'],[260,'Gibbeuse décroissante'],[280,'Dernier quartier'],[350,'Dernier croissant'],[361,'Nouvelle lune']];
+const phaseName=E=>PHN.find(x=>E<x[0])[1];
+function nextPhase(t0,target){   // prochain instant où l’élongation vaut target (0 ou 180)
+  const f=t=>mod(moonPhase(t).E-target+180,360)-180;
+  let a=t0, fa=f(a);
+  for(let i=0;i<130;i++){const b=a+6*3600000,fb=f(b);if(fa<0&&fb>=0&&fb-fa<90){let lo=a,hi=b;for(let j=0;j<30;j++){const mi=(lo+hi)/2;if(f(mi)<0)lo=mi;else hi=mi;}return (lo+hi)/2;}a=b;fa=fb;}
+  return null;
+}
 // x = est, y = haut, -z = nord
 const dir=(alt,az,r)=>new THREE.Vector3(r*Math.cos(alt)*Math.sin(az),r*Math.sin(alt),-r*Math.cos(alt)*Math.cos(az));
 
@@ -215,6 +284,83 @@ const rayPos=new THREE.BufferAttribute(new Float32Array(9),3);
 const rayGeo=new THREE.BufferGeometry(); rayGeo.setAttribute('position',rayPos);
 const ray=new THREE.Line(rayGeo,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:.6})); ray.frustumCulled=false; scene.add(ray);
 
+// Lune : disque éclairé du côté du Soleil (lumière directionnelle venant du Soleil)
+// disque toujours tourné vers la caméra, dessiné avec la phase ; sa rotation place le bord éclairé du côté du Soleil
+const mcv=document.createElement('canvas'); mcv.width=mcv.height=128; const mTex=new THREE.CanvasTexture(mcv);
+const moonMat=new THREE.SpriteMaterial({map:mTex,transparent:true,depthWrite:false});
+const moon=new THREE.Sprite(moonMat); moon.scale.set(1.15,1.15,1); scene.add(moon);
+let mDrawnK=-1;
+function paintMoon(k){if(Math.abs(k-mDrawnK)<.004)return;mDrawnK=k;const c=mcv.getContext('2d');c.clearRect(0,0,128,128);drawMoon2D(c,64,64,58,k,0,false);mTex.needsUpdate=true;}
+const mgc=document.createElement('canvas'); mgc.width=mgc.height=128;
+{const x=mgc.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(220,230,255,.55)');g.addColorStop(1,'rgba(220,230,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128);}
+const mGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(mgc),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false})); mGlow.scale.set(2.4,2.4,1); scene.add(mGlow);
+const moonLab=label('Lune',{size:.7,color:'#e3e9f5',bg:true}); scene.add(moonLab);
+const mPathA=mk(0xd6deec,.9), mPathB=mk(0x8c97b5,.35);
+let moonGroup=null, mEvents={}, mLoop=1490;
+// la Lune revient au même endroit du ciel au bout d’environ 24 h 50 : on prolonge la courbe jusque-là pour qu’elle se referme
+function moonLoopMin(){
+  const v=p=>[Math.cos(p.alt)*Math.sin(p.az),Math.sin(p.alt),-Math.cos(p.alt)*Math.cos(p.az)], a=v(moonPos(dayStart));
+  let best=dayLen+50, bd=-2;
+  for(let d=20;d<=100;d+=2){const b=v(moonPos(dayStart+(dayLen+d)*60000)), c=a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; if(c>bd){bd=c;best=dayLen+d;}}
+  return best;
+}
+// orientation du bord éclairé à l’écran : vers un point voisin de la Lune, pris en direction du Soleil sur la voûte
+const moonSunDir=new THREE.Vector3(1,0,0), _a=new THREE.Vector3(), _b=new THREE.Vector3();
+function aimMoonLight(){
+  if(!moon.visible)return;
+  const m=moon.position.clone().normalize(), tg=moonSunDir.clone().addScaledVector(m,-moonSunDir.dot(m));
+  if(tg.lengthSq()<1e-8)return; tg.normalize();
+  cam.updateMatrixWorld(); _a.copy(moon.position).project(cam); _b.copy(m).addScaledVector(tg,.03).multiplyScalar(moon.position.length()).project(cam);
+  moonMat.rotation=Math.atan2((_b.y-_a.y)/cam.aspect*1,(_b.x-_a.x));
+}
+function buildMoonPath(){
+  clear(moonGroup); moonGroup=new THREE.Group(); scene.add(moonGroup); mEvents={};
+  mLoop=moonLoopMin();
+  const step=10*60000, N=Math.round(dayLen/10), NL=Math.ceil(mLoop/10), pts=[], tEnd=dayStart+dayLen*60000;
+  for(let i=0;i<=NL;i++){const t=dayStart+Math.min(i*10,mLoop)*60000,p=moonPos(t);pts.push({t,alt:p.alt,v:dir(p.alt,p.az,R*.97)});}
+  let run=[pts[0].v], sign=pts[0].alt>=H0;
+  const flush=()=>{if(run.length>1)moonGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(run),run.length*2,sign?.06:.04,5,false),sign?mPathA:mPathB));};
+  for(let i=1;i<=NL;i++){
+    const a=pts[i-1],b=pts[i],sg=b.alt>=H0;
+    if(sg!==sign){
+      const f=(a.alt-H0)/(a.alt-b.alt),q=a.v.clone().lerp(b.v,f); q.y=0; run.push(q); flush();
+      const tt=a.t+f*(b.t-a.t); run=[q]; sign=sg;
+      if(tt>tEnd){run.push(b.v);continue;}   // passage du lendemain : pas de repère
+      if(sg)mEvents.rise=tt; else mEvents.set=tt;
+      const dot=new THREE.Mesh(new THREE.SphereGeometry(.15,10,8),mk(0xd6deec,1)); dot.position.copy(q); moonGroup.add(dot);
+      const l=label(sg?'lever de la Lune':'coucher de la Lune',{size:.62,color:'#d6deec'}); l.position.copy(q).multiplyScalar(1.1); l.position.y+=.35; moonGroup.add(l);
+    }
+    run.push(b.v);
+  }
+  flush();
+  // heures : un point par heure, l’heure écrite toutes les 3 h, à l’intérieur de la voûte pour ne pas se mêler à celles du soleil
+  const dA=mk(0xeef2f8,1), dB=mk(0xb4bdd4,.6);
+  for(let k=0;k*6<=N&&k<dayLen/60;k++){
+    const q=pts[k*6], up=q.alt>=H0, h=parts(q.t,loc.tz).hour;
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(.08,8,6),up?dA:dB); dot.position.copy(q.v); moonGroup.add(dot);
+    if(h%3===0){const l=label(h+' h',{size:.74,color:up?'#e3e9f5':'#b4bdd4',alpha:up?1:.7});l.position.copy(q.v).setLength(R*.86);moonGroup.add(l);}
+  }
+  // fin de courbe : la Lune n’est pas tout à fait revenue à son point de départ (sa déclinaison change chaque jour)
+  {const q=pts[NL], l=label(fmtT(q.t)+' le lendemain',{size:.62,color:'#b4bdd4'}); l.position.copy(q.v).setLength(R*.86); l.position.y+=.45; moonGroup.add(l);}
+  moonGroup.visible=show.moo;
+}
+function updateMoon(t,sp){
+  const on=show.moo, p=moonPos(t), v=dir(p.alt,p.az,R*.97), up=p.alt>=H0;
+  moon.visible=mGlow.visible=moonLab.visible=on; if(moonGroup)moonGroup.visible=on;
+  $('app').classList.toggle('nomoon',!on);
+  moon.position.copy(v); mGlow.position.copy(v); moonLab.position.copy(v).multiplyScalar(1.09); moonLab.position.y+=.75;
+  moonMat.opacity=up?1:.45; moonMat.depthTest=!up; moon.renderOrder=up?6:0; paintMoon(moonPhase(t).k); mGlow.material.opacity=up?(sp.alt>0?.35:1):.15;
+  moonSunDir.copy(dir(sp.alt,sp.az,1)); aimMoonLight();
+  if(!on)return p;
+  const ph=moonPhase(t);
+  $('mPhase').textContent=phaseName(ph.E)+', '+Math.round(ph.k*100)+' %';
+  $('mRise').textContent=fmtT(mEvents.rise); $('mSet').textContent=fmtT(mEvents.set);
+  const fd=x=>x==null?'—':new Date(x).toLocaleDateString('fr-FR',{timeZone:loc.tz,weekday:'short',day:'numeric',month:'short'})+' à '+fmtT(x);
+  const key=Math.floor(t/3600000); if(key!==updateMoon.key){updateMoon.key=key;updateMoon.nf=nextPhase(t,180);updateMoon.nn=nextPhase(t,0);}
+  $('mNext').textContent='Hauteur '+fmtD(p.alt/RAD)+', azimut '+Math.round(p.az/RAD)+'° '+card[Math.round(p.az/RAD/45)%8]+' · Pleine lune : '+fd(updateMoon.nf)+' · Nouvelle lune : '+fd(updateMoon.nn);
+  return p;
+}
+
 // Gnomon et ombre
 const gnomon=new THREE.Group(); scene.add(gnomon);
 const rod=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,GH,12),new THREE.MeshBasicMaterial({color:0xe8e2d0})); rod.position.y=GH/2; gnomon.add(rod);
@@ -235,7 +381,7 @@ const eclLab=label('écliptique',{size:.85,color:'#ff9be6',bg:true}); eclMarks.a
 const matDay=mk(0xffc23d,1), matNight=mk(0x9db0ff,.85);
 const mSumA=mk(0xff7a8a,.95), mSumB=mk(0xff7a8a,.3), mEqA=mk(0xffffff,.85), mEqB=mk(0xffffff,.25), mWinA=mk(0x6fe0ff,.95), mWinB=mk(0x6fe0ff,.3), mAx=mk(0xc9a7ff,.95), mAxB=mk(0xc9a7ff,.35);
 
-const show={sea:false,axe:false,ana:false,gno:false,ecl:false,nxt:false};
+const show={sea:false,axe:false,ana:false,gno:false,ecl:false,nxt:false,moo:true};
 let seaGroup, axeGroup;
 function circleDec(dec){const vs=[];for(let i=0;i<=144;i++){const p=hz(i/144*2*Math.PI,dec*RAD);vs.push(dir(p.alt,p.az,R));}return vs;}
 function buildSky(){
@@ -296,6 +442,7 @@ function buildPath(){
     dot.position.copy(q.v); pathGroup.add(dot);
     if(h%3===0){const l=label(h+' h',{size:.8,color:up?'#fff3cf':'#b9c6ff',alpha:up?1:.8});l.position.copy(q.v).setLength(R*1.1);pathGroup.add(l);}
   }
+  buildMoonPath();
   nextRS='rise'; $('rs').textContent='Aller au lever'; initSeason();
 }
 
@@ -352,6 +499,7 @@ function update(min){
   else if(events.allDown)$('len').textContent='0 h';
   else if(Rr&&Ss){let mn=Math.round((Ss-Rr)/60000);if(mn<0)mn+=1440;$('len').textContent=Math.floor(mn/60)+' h '+pad(mn%60);}
   else $('len').textContent='—';
+  updateMoon(t,p);
   if(pano2d)drawPano(t,p);
   if(map2d)drawMap(t);
   updateEarth(t,p);
@@ -476,7 +624,30 @@ const slL=label('Soleil (rayons parallèles)',{size:.5,color:'#ffd36a',bg:true})
 // direction du Soleil vue par l’observateur
 const osPos=new THREE.BufferAttribute(new Float32Array(6),3), osGeo=new THREE.BufferGeometry(); osGeo.setAttribute('position',osPos);
 const osLine=new THREE.Line(osGeo,new THREE.LineBasicMaterial({color:0xffd36a,transparent:true,opacity:.9})); osLine.frustumCulled=false; escene.add(osLine);
+// Lune autour de la Terre (orbite pas à l’échelle) : elle tourne dans le sens direct, éclairée par le Soleil à droite
+const eMoon=new THREE.Group(); escene.add(eMoon);
+const MO=4.9;
+{const pts=[];for(let i=0;i<=128;i++){const a=i/128*Math.PI*2;pts.push(new THREE.Vector3(MO*Math.cos(a),0,-MO*Math.sin(a)));}
+ const ring=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineDashedMaterial({color:0xd6deec,dashSize:.18,gapSize:.14,transparent:true,opacity:.55}));ring.computeLineDistances();eMoon.add(ring);
+ for(const [E,t] of [[0,'nouvelle lune'],[90,'premier quartier'],[180,'pleine lune'],[270,'dernier quartier']]){
+   const a=E*RAD, tk=new THREE.Mesh(new THREE.SphereGeometry(.06,8,6),mk(0xd6deec,.8)); tk.position.set(MO*Math.cos(a),0,-MO*Math.sin(a)); eMoon.add(tk);
+   const l=label(t,{size:.46,color:'#d6deec',bg:true}); l.position.set((MO+.75)*Math.cos(a),-.45,-(MO+.75)*Math.sin(a)); eMoon.add(l);}
+ const ar=label('sens de rotation de la Lune ↺',{size:.44,color:'#d6deec'}); ar.position.set(-MO*.72,.5,MO*.72); eMoon.add(ar);}
+const eMoonBall=new THREE.Mesh(new THREE.SphereGeometry(.38,32,20),new THREE.MeshLambertMaterial({color:0xe9edf5,emissive:0x0d1018})); eMoon.add(eMoonBall);
+const eMoonLab=label('Lune',{size:.42,color:'#e3e9f5',bg:true}); eMoon.add(eMoonLab);
+const emPos=new THREE.BufferAttribute(new Float32Array(6),3), emGeo=new THREE.BufferGeometry(); emGeo.setAttribute('position',emPos);
+const emLine=new THREE.Line(emGeo,new THREE.LineDashedMaterial({color:0xd6deec,dashSize:.12,gapSize:.1,transparent:true,opacity:.6})); emLine.frustumCulled=false; eMoon.add(emLine);
+function updateEarthMoon(t){
+  eMoon.visible=show.moo; if(!show.moo)return;
+  const ph=moonPhase(t), a=ph.E*RAD, b=moonEq(t).bet;
+  const P=new THREE.Vector3(MO*Math.cos(a),MO*Math.sin(b)*2,-MO*Math.sin(a));
+  eMoonBall.position.copy(P); eMoonLab.position.copy(P).add(new THREE.Vector3(0,.75,0));
+  const lab=phaseName(ph.E)+' ('+Math.round(ph.k*100)+' % éclairée vue de la Terre)';
+  if(eMoonLab.userData.t!==lab){eMoonLab.userData.t=lab;const nl=label('Lune : '+lab,{size:.5,color:'#e3e9f5',bg:true});eMoonLab.material.map.dispose();eMoonLab.material.map=nl.material.map;eMoonLab.scale.copy(nl.scale);eMoonLab.material.needsUpdate=true;}
+  const Q=P.clone().setLength(RE*1.02); emPos.setXYZ(0,Q.x,Q.y,Q.z); emPos.setXYZ(1,P.x,P.y,P.z); emPos.needsUpdate=true; emLine.computeLineDistances();
+}
 function updateEarth(t,p){
+  updateEarthMoon(t);
   // Soleil fixe à droite (+x), plan de l’écliptique horizontal : c’est l’axe de la Terre qui change d’orientation par rapport au Soleil au fil de l’année
   const e=sunEq(t), ce=Math.cos(23.439*RAD), se=Math.sin(23.439*RAD);
   const sE=new THREE.Vector3(Math.cos(e.dec)*Math.cos(e.ra),Math.sin(e.dec),-Math.cos(e.dec)*Math.sin(e.ra));
@@ -495,6 +666,7 @@ function updateEarth(t,p){
   else eSh.visible=false;
 }
 $('earth').addEventListener('click',()=>{
+  stopCompass();
   if(map2d)setMap(false);
   if(pano2d)$('view').click();
   earthMode=!earthMode; $('earth').textContent=earthMode?'Ciel':'Terre';
@@ -510,6 +682,15 @@ function skyCss(a){
   if(a<=SKY[0][0])return 'rgb('+SKY[0][1]+')';
   for(let i=1;i<SKY.length;i++)if(a<=SKY[i][0]){const [a0,c0]=SKY[i-1],[a1,c1]=SKY[i],f=(a-a0)/(a1-a0);return 'rgb('+c0.map((v,j)=>Math.round(v+(c1[j]-v)*f))+')';}
   return 'rgb('+SKY[SKY.length-1][1]+')';
+}
+// Disque de Lune en 2D : k = fraction éclairée, ang = direction du bord éclairé (vers le Soleil)
+const v3=p=>[Math.cos(p.alt)*Math.sin(p.az),Math.sin(p.alt),-Math.cos(p.alt)*Math.cos(p.az)];
+function drawMoon2D(c,x,y,r,k,ang,dim){
+  c.save(); c.translate(x,y); c.rotate(ang); c.globalAlpha=dim?.5:1;
+  c.fillStyle='#2b3246'; c.beginPath(); c.arc(0,0,r,0,7); c.fill();
+  c.fillStyle='#eef2f8'; c.beginPath(); c.moveTo(0,-r); c.arc(0,0,r,-Math.PI/2,Math.PI/2);
+  const rx=r*Math.abs(1-2*k); if(k<.5)c.ellipse(0,0,rx,r,0,Math.PI/2,-Math.PI/2,true); else c.ellipse(0,0,rx,r,0,Math.PI/2,3*Math.PI/2,false);
+  c.fill(); c.globalAlpha=1; c.strokeStyle='rgba(255,255,255,.35)'; c.lineWidth=1; c.beginPath(); c.arc(0,0,r,0,7); c.stroke(); c.restore();
 }
 // Panorama : le ciel vu depuis le sol, face au sud (face au nord dans l’hémisphère sud)
 const pano=$('pano'), px=pano.getContext('2d'); let pano2d=false;
@@ -548,6 +729,22 @@ function drawPano(t,sp){
   for(let hh=0;hh*60<dayLen;hh++){const q=ps[hh*12];if(!q)continue;const a=rel(q.az),d=q.alt/RAD;if(a<A0||a>A1||d<LO)continue;
     const x=X(a),y=Y(d),up=q.alt>=H0;px.fillStyle=up?'#fff3cf':'#a9b8ff';px.beginPath();px.arc(x,y,2.6,0,7);px.fill();
     const lh=parts(dayStart+hh*3600000,loc.tz).hour; if(up&&lh%2===0)txt(lh+' h',x,y-9,'#fff3cf');}
+  if(show.moo){
+    const ms=[]; for(let i=0;i<=mLoop+9;i+=10)ms.push(moonPos(dayStart+Math.min(i,mLoop)*60000));
+    line(ms,'rgba(214,222,236,.45)',1.3,[2,4]); line(ms.map(q=>q.alt>=H0?q:null),'#d6deec',2.2);
+    // heures sur la trajectoire de la Lune : un point par heure, l’heure écrite toutes les 2 h (sous la courbe, pour ne pas gêner celles du soleil)
+    for(let hh=0;hh*60<dayLen;hh++){const q=ms[hh*6];if(!q)continue;const qa=rel(q.az),qd=q.alt/RAD;if(qa<A0||qa>A1||qd<LO)continue;
+      const x=X(qa),y=Y(qd),up=q.alt>=H0;px.fillStyle=up?'#eef2f8':'rgba(214,222,236,.6)';px.beginPath();px.arc(x,y,2.3,0,7);px.fill();
+      const lh=parts(dayStart+hh*3600000,loc.tz).hour; if(lh%2===0&&qd>-12)txt(lh+' h',x,y+15,up?'#e3e9f5':'rgba(214,222,236,.75)','center','500 11px');}
+    {const q=ms[ms.length-1], ea=rel(q.az), ed=q.alt/RAD; if(ea>=A0&&ea<=A1&&ed>=LO)txt(fmtT(dayStart+mLoop*60000)+' le lendemain',X(ea),Y(ed)-9,'rgba(214,222,236,.8)','center','500 11px');}
+    const mp=moonPos(t), ma=rel(mp.az), md=mp.alt/RAD;
+    if(ma>=A0&&ma<=A1&&md>=LO){
+      const mx=X(ma), my=Y(md), sv=v3(sp), mv=v3(mp), tw=sv.map((c,i)=>c-mv[i]*(sv[0]*mv[0]+sv[1]*mv[1]+sv[2]*mv[2]));
+      const n=Math.hypot(...tw)||1, q=mv.map((c,i)=>c+tw[i]/n*.03), qa=Math.asin(q[1]/Math.hypot(...q)), qz=Math.atan2(q[0],-q[2]);
+      const ang=Math.atan2(Y(qa/RAD)-my,X(rel(qz))-mx);
+      drawMoon2D(px,mx,my,9,moonPhase(t).k,ang,mp.alt<H0); txt('Lune',mx,my-15,'#e3e9f5');
+    }
+  }
   const a=rel(sp.az),d=sp.alt/RAD;
   if(a>=A0&&a<=A1&&d>=LO){const x=X(a),y=Y(d),up=sp.alt>=H0,g=px.createRadialGradient(x,y,0,x,y,32);
     g.addColorStop(0,up?'rgba(255,214,120,.95)':'rgba(157,176,255,.55)');g.addColorStop(1,'rgba(255,200,80,0)');
@@ -637,6 +834,13 @@ function drawMap(t){
     wx.fillStyle=g; wx.beginPath(); wx.arc(gx,gy,r*5,0,7); wx.fill();
     wx.fillStyle='#ffd36a'; wx.strokeStyle='#7a4e00'; wx.lineWidth=1; wx.beginPath(); wx.arc(gx,gy,r,0,7); wx.fill(); wx.stroke();
   }
+  if(show.moo){
+    const me2=moonEq(t), mlon=mod(me2.ra/RAD-me2.gmst+180,360)-180, ph=moonPhase(t);
+    // direction du bord éclairé : vers le point subsolaire (sur la carte, à l’est ou à l’ouest)
+    const dl=mod(s.lon-mlon+180,360)-180, ang=Math.atan2(-(s.lat-me2.dec/RAD),dl);
+    for(const off of [0,-mw,mw]){const gx=X(mlon)+off,gy=Y(me2.dec/RAD);if(gx<ox-12||gx>ox+mw+12)continue;drawMoon2D(wx,gx,gy,Math.max(5,r*.95),ph.k,ang,false);wx.font='600 11px '+F;wx.textAlign='center';wx.lineWidth=3;wx.strokeStyle='rgba(5,8,20,.7)';wx.strokeText('Lune',gx,gy-r-5);wx.fillStyle='#e3e9f5';wx.fillText('Lune',gx,gy-r-5);}
+    MG.moon=fmtC(me2.dec/RAD,'N','S')+', '+fmtC(mlon,'E','O');
+  }
   for(const q of PLACES.concat(geoLoc?[geoLoc]:[])){if(q===loc)continue;wx.fillStyle='rgba(255,255,255,.85)';wx.beginPath();wx.arc(X(q.lon),Y(q.lat),2.2,0,7);wx.fill();}
   wx.restore();
   // lieu observé
@@ -661,10 +865,12 @@ function drawMap(t){
   const cap=oy+mh+15;
   const zc=fmtC(s.lat,'N','S')+', '+fmtC(s.lon,'E','O');
   txt((mw<420?'Soleil au zénith : ':'Soleil au zénith au-dessus de ')+zc,ox,cap,'rgba(255,255,255,.85)','left',mw<420?'500 11px':'500 12px');
+  if(show.moo&&MG.moon)txt((mw<420?'Lune au zénith : ':'Lune au zénith au-dessus de ')+MG.moon,ox,cap+15,'rgba(227,233,245,.85)','left',mw<420?'500 11px':'500 12px');
   txt('0',sx,cap,'rgba(255,255,255,.75)','left','500 11px'); txt('24 h',sx+sw,cap,'rgba(255,255,255,.75)','right','500 11px');
   txt('durée du jour',Math.min(sx+sw/2,w-4),cap+14,'rgba(255,255,255,.85)',sx+sw/2+36>w?'right':'center','600 11px');
 }
 function setMap(v){
+  if(v)stopCompass();
   if(v){if(earthMode)$('earth').click(); if(pano2d&&!window.NO3D)$('view').click();}
   map2d=v; wm.hidden=!v; cv.hidden=v||pano2d; pano.hidden=v||!pano2d;
   $('app').classList.toggle('map2d',v); $('wm').textContent=v?'Ciel':'Carte';
@@ -698,6 +904,7 @@ function riseSet(s0,len){
   return rsCache[key]={r,st};
 }
 $('view').addEventListener('click',()=>{
+  stopCompass();
   if(map2d)setMap(false);
   if(earthMode){earthMode=false;$('earth').textContent='Terre';document.querySelector('[data-k="ana"]').hidden=false;if(savedShow){Object.assign(show,savedShow);savedShow=null;}}
   document.querySelector('[data-k="nxt"]').hidden=pano2d; if(pano2d)show.nxt=false;
@@ -715,18 +922,118 @@ function setCam(){
 }
 const ptrs=new Map(); let pd=0;
 const pinch=()=>{const a=[...ptrs.values()];return a.length<2?0:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);};
-function zoom(k){if(earthMode)OE.d=clamp(OE.d*k,fitE*.4,fitE*1.8);else O.d=clamp(O.d*k,fit*.5,fit*1.6);}
-$('reset').addEventListener('click',()=>{O.th=Math.PI;O.phi=.42;O.d=fit;OE.th=.45;OE.phi=.3;OE.d=fitE;});
-$('mini').addEventListener('click',()=>{const m=$('panel').classList.toggle('mini');$('mini').textContent=m?'Commandes':'Zoom';$('mini').setAttribute('aria-expanded',!m);});
+function zoom(k){if(compass||immersive){cFov=clamp(cFov*k,30,95);return;}if(earthMode)OE.d=clamp(OE.d*k,fitE*.4,fitE*1.8);else O.d=clamp(O.d*k,fit*.5,fit*1.6);}
+$('reset').addEventListener('click',()=>{stopCompass();IM.yaw=Math.PI;IM.pitch=.25;cFov=70;O.th=Math.PI;O.phi=.42;O.d=fit;OE.th=.45;OE.phi=.3;OE.d=fitE;});
+$('mini').addEventListener('click',()=>{const m=$('panel').classList.toggle('mini');$('mini').setAttribute('aria-pressed',m);$('mini').setAttribute('aria-expanded',!m);});
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});pd=pinch();});
 cv.addEventListener('pointermove',e=>{
   const p=ptrs.get(e.pointerId); if(!p)return;
   const dx=e.clientX-p.x,dy=e.clientY-p.y; p.x=e.clientX; p.y=e.clientY;
-  if(ptrs.size===1){const C=earthMode?OE:O;C.th-=dx*.006;C.phi=clamp(C.phi+dy*.006,-1.4,1.4);}
+  if(ptrs.size===1&&immersive&&!compass){IM.yaw-=dx*.005;IM.pitch=clamp(IM.pitch+dy*.005,-1.35,1.45);}
+  else if(ptrs.size===1&&!compass){const C=earthMode?OE:O;C.th-=dx*.006;C.phi=clamp(C.phi+dy*.006,-1.4,1.4);}
   else if(ptrs.size===2){const d=pinch();if(pd&&d)zoom(pd/d);pd=d;}
 });
 ['pointerup','pointercancel'].forEach(n=>cv.addEventListener(n,e=>{ptrs.delete(e.pointerId);pd=pinch();}));
 cv.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(e.deltaY*.001));},{passive:false});
+
+
+// Boussole : la vue suit l'orientation du téléphone (boussole et capteurs d'inclinaison)
+let compass=false, cFov=70, cGot=false, cTimer=0, toastT=0, absOK=false, cAny=false, cNull=false, cSensor=null, cFall=0;
+const cTarget=new THREE.Quaternion(), cEuler=new THREE.Euler(), cQ0=new THREE.Quaternion(), cQ1=new THREE.Quaternion(-Math.sqrt(.5),0,0,Math.sqrt(.5)), cZ=new THREE.Vector3(0,0,1);
+function toast(msg,ms){const el=$('toast');clearTimeout(toastT);el.style.top=Math.max(8,cv.getBoundingClientRect().top+10)+'px';el.textContent=msg;if(ms)toastT=setTimeout(()=>{el.textContent='';},ms);}
+function screenAngle(){return ((screen.orientation&&screen.orientation.angle)||window.orientation||0)*RAD;}
+function gotData(){if(!cGot){cGot=true;toast('Tenez le téléphone devant vous et visez le ciel. Si le nord semble faux, décrivez un 8 avec le téléphone pour calibrer la boussole.',6000);}}
+function onOrient(e,abs){
+  cAny=true;
+  if(e.alpha==null||e.beta==null){cNull=true;return;}
+  if(cSensor)return;
+  let a;
+  if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))a=360-e.webkitCompassHeading;   // iPhone : cap mesuré depuis le nord
+  else if(abs||e.absolute)a=e.alpha;   // Android : angle mesuré depuis le nord
+  else{if(absOK)return; a=e.alpha;}    // orientation relative seulement : le nord peut être faux
+  if(abs)absOK=true;
+  gotData();
+  // conversion des angles du téléphone en orientation de caméra (nord = −z, est = +x, zénith = +y)
+  cEuler.set(e.beta*RAD,a*RAD,-e.gamma*RAD,'YXZ'); cTarget.setFromEuler(cEuler); cTarget.multiply(cQ1); cTarget.multiply(cQ0.setFromAxisAngle(cZ,-screenAngle()));
+}
+const onAbs=e=>onOrient(e,true), onRel=e=>onOrient(e,false);
+function setCamCompass(){
+  gnomon.visible=false; me.visible=false;
+  cam.position.set(0,.35,0); cam.fov=cFov;
+  if(cGot)cam.quaternion.slerp(cTarget,.22);
+  cam.updateProjectionMatrix();
+}
+function sensorHelp(blocked){
+  return (blocked?'Le navigateur bloque l’accès aux capteurs de mouvement. ':'Aucune donnée d’orientation reçue. ')+
+    'Dans Chrome : touchez l’icône à gauche de l’adresse, puis Autorisations (ou Paramètres du site), et autorisez « Capteurs de mouvement ». '+
+    'Vérifiez aussi ⋮ > Paramètres > Paramètres des sites > Capteurs de mouvement. Rechargez ensuite la page.';
+}
+// second moyen (Chrome sur Android) : capteur d'orientation absolue de l'API Generic Sensor
+function trySensor(){
+  if(!('AbsoluteOrientationSensor' in window)||cSensor)return;
+  try{
+    const sn=new AbsoluteOrientationSensor({frequency:30,referenceFrame:'screen'});
+    sn.addEventListener('reading',()=>{
+      if(!compass||!sn.quaternion)return;
+      const q=sn.quaternion; cTarget.set(q[0],q[1],q[2],q[3]); cTarget.premultiply(cQ1); gotData();
+    });
+    sn.addEventListener('error',ev=>{if(ev.error&&ev.error.name==='NotAllowedError')cNull=true;});
+    sn.start(); cSensor=sn;
+  }catch(err){if(err&&err.name==='SecurityError')cNull=true;}
+}
+async function startCompass(){
+  if(!window.isSecureContext){toast('La boussole ne fonctionne que si l’appli est ouverte depuis une adresse https (par exemple GitHub Pages).',6000);return;}
+  if(typeof DeviceOrientationEvent==='undefined'){toast('Ce navigateur ne donne pas accès aux capteurs d’orientation.',5000);return;}
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){   // iPhone et iPad : autorisation demandée par Safari
+    try{if(await DeviceOrientationEvent.requestPermission()!=='granted'){toast('Accès aux capteurs refusé : la boussole ne peut pas fonctionner.',5000);return;}}
+    catch(err){toast('Accès aux capteurs impossible : '+err.message,5000);return;}
+  }
+  if(curView!=='pano3'){prevView=curView; setView('pano3');}
+  compass=true; cGot=false; absOK=false; cFov=70;
+  ground.material.opacity=.55;
+  $('compass').setAttribute('aria-pressed','true');
+  window.addEventListener('deviceorientationabsolute',onAbs); window.addEventListener('deviceorientation',onRel);
+  cAny=false; cNull=false; toast('Recherche des capteurs…');
+  clearTimeout(cFall); cFall=setTimeout(()=>{if(compass&&!cGot)trySensor();},1500);
+  clearTimeout(cTimer); cTimer=setTimeout(()=>{if(compass&&!cGot){const blocked=cAny||cNull;stopCompass();toast(sensorHelp(blocked),12000);}},5000);
+}
+function stopCompass(){
+  if(!compass)return;
+  if(immersive){const d=new THREE.Vector3(0,0,-1).applyQuaternion(cam.quaternion);IM.pitch=clamp(Math.asin(clamp(d.y,-1,1)),-1.35,1.45);IM.yaw=Math.atan2(d.x,-d.z);}
+  compass=false; clearTimeout(cTimer); clearTimeout(cFall);
+  if(cSensor){try{cSensor.stop();}catch(e){} cSensor=null;}
+  window.removeEventListener('deviceorientationabsolute',onAbs); window.removeEventListener('deviceorientation',onRel);
+  ground.material.opacity=.9; me.visible=true; applyShow();
+  $('compass').setAttribute('aria-pressed','false'); toast('');
+  if(!inSetView&&curView==='pano3')setView(prevView);
+}
+$('compass').addEventListener('click',()=>{if(compass)stopCompass(); else startCompass();});
+// Panorama 3D : vue immersive depuis le sol, on tourne la tête en faisant glisser
+let immersive=false; const IM={yaw:Math.PI,pitch:.25};
+function setCamImm(){
+  gnomon.visible=false; me.visible=false; ground.material.opacity=.55;
+  cam.position.set(0,.35,0); cam.fov=cFov; cam.up.set(0,1,0);
+  cam.lookAt(dir(IM.pitch,IM.yaw,1).add(cam.position)); cam.updateProjectionMatrix();
+}
+// choix de la vue : Carte, Ciel 3D, Panorama 2D, Panorama 3D, Terre
+const canCompass=!window.NO3D&&typeof DeviceOrientationEvent!=='undefined'&&matchMedia('(pointer:coarse)').matches;
+let curView='sky', prevView='map', inSetView=false;
+function setView(v){
+  if(window.NO3D){ if(v==='map')setMap(true); else{v='pano2';if(map2d)setMap(false);} }
+  else{
+    inSetView=true; stopCompass(); inSetView=false;
+    if(immersive){immersive=false; ground.material.opacity=.9; me.visible=true; applyShow();}
+    if(map2d)setMap(false); if(earthMode)$('earth').click(); if(pano2d)$('view').click();
+    if(v==='map')setMap(true); else if(v==='earth')$('earth').click(); else if(v==='pano2')$('view').click();
+    else if(v==='pano3'){immersive=true; cFov=70; IM.yaw=loc.lat>=0?Math.PI:0; IM.pitch=.25;}
+  }
+  curView=v;
+  document.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
+  $('compass').hidden=!canCompass;
+  update(minute);
+}
+document.querySelectorAll('[data-v]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
+if(window.NO3D)document.querySelectorAll('[data-v="sky"],[data-v="pano3"],[data-v="earth"]').forEach(b=>b.hidden=true);
 
 // Contrôles
 function today(){const now=Date.now(),p=parts(now,loc.tz);dt.value=p.year+'-'+pad(p.month)+'-'+pad(p.day);return now;}
@@ -820,14 +1127,14 @@ $('geo').addEventListener('click',()=>{$('err').textContent='';locate();});
 function resize(){
   const w=cv.clientWidth,h=cv.clientHeight; if(!w||!h)return;
   renderer.setSize(w,h,false); cam.aspect=w/h;
-  fit=(R+1.6)/(Math.tan(22.5*RAD)*Math.min(1,cam.aspect)); O.d=fit; cam.updateProjectionMatrix();
+  fit=(R+2.3)/(Math.tan(22.5*RAD)*Math.min(1,cam.aspect)); O.d=fit; cam.updateProjectionMatrix();
   camE.aspect=cam.aspect; camE.updateProjectionMatrix(); fitE=5.8/(Math.tan(22.5*RAD)*Math.min(1,cam.aspect)); OE.d=fitE;
 }
 new ResizeObserver(resize).observe(cv);
 function loop(ts){
   if(playing){if(last){minute=(minute+(ts-last)/1000*120)%span();tm.value=Math.floor(minute);update(minute);}last=ts;}
   if(yearPlaying){if(!lastY||ts-lastY>90){lastY=ts;nextDay();}}
-  if(map2d){} else if(earthMode){setCamE(); renderer.render(escene,camE);} else if(!pano2d){setCam(); renderer.render(scene,cam);} requestAnimationFrame(loop);
+  if(map2d){} else if(earthMode){setCamE(); renderer.render(escene,camE);} else if(!pano2d){if(compass)setCamCompass(); else if(immersive)setCamImm(); else setCam(); aimMoonLight(); renderer.render(scene,cam);} requestAnimationFrame(loop);
 }
 if(window.NO3D){   // sans 3D : démarrage en panorama, boutons propres à la 3D masqués
   pano2d=true; cv.hidden=true; pano.hidden=false;
@@ -835,7 +1142,8 @@ if(window.NO3D){   // sans 3D : démarrage en panorama, boutons propres à la 3D
   document.querySelector('[data-k="nxt"]').hidden=false;
   document.querySelectorAll('[data-k="axe"],[data-k="gno"]').forEach(b=>b.hidden=true);
 }
-resize(); applyLoc(PLACES[0]); requestAnimationFrame(loop);
+resize(); applyLoc(PLACES[0]); setView('map');   // la carte jour/nuit est la vue de départ
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
