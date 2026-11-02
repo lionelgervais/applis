@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Disque de Poincaré</title>
+<style>
+:root{--bg:#fafaf7;--fg:#1d1d1b;--mut:#6b6a63;--a:#c2410c;--b:#1d4ed8;--grid:#d6d4cb;--card:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161615;--fg:#ecebe5;--mut:#9a988f;--a:#fb923c;--b:#7aa2ff;--grid:#3a3935;--card:#201f1d}}
+:root[data-theme="dark"]{--bg:#161615;--fg:#ecebe5;--mut:#9a988f;--a:#fb923c;--b:#7aa2ff;--grid:#3a3935;--card:#201f1d}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:560px;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif;padding:14px}
+h1{font-size:20px;margin:0 0 10px}
+.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{flex:1;min-width:140px;padding:10px;border:1px solid var(--grid);background:var(--card);color:var(--fg);border-radius:10px;font:inherit;cursor:pointer}
+.tabs button.on{border-color:var(--a);box-shadow:inset 0 0 0 1px var(--a);font-weight:600}
+.grid{display:grid;grid-template-columns:1fr;gap:12px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:10px}
+.card h2{font-size:14px;margin:0 0 6px;color:var(--mut);font-weight:600}
+canvas{width:100%;display:block}
+#side{aspect-ratio:4/3}#disk{aspect-ratio:1/1;touch-action:none;cursor:grab}#v3{aspect-ratio:1/1;touch-action:none;cursor:grab}
+.ctl{margin-top:12px;display:grid;gap:8px}
+.ctl label{display:flex;align-items:center;gap:10px}
+.ctl input[type=range]{flex:1}
+.info{margin-top:12px;font-size:14px}
+.info code{background:var(--bg);padding:1px 5px;border-radius:4px}
+.info p{margin:4px 0}
+.val{color:var(--a);font-weight:600}
+</style></head><body>
+<h1>Disque de Poincaré & projection stéréographique</h1>
+<div class="tabs">
+<button id="bE">Métrique euclidienne</button>
+<button id="bH">Métrique de Minkowski (hyperboloïde)</button>
+</div>
+<div class="tabs" id="sub"><button id="bS">Sphère</button><button id="bX">Hyperboloïde</button></div>
+<div class="grid">
+<div class="card"><h2>Vue du dessus : le plan de projection</h2><canvas id="disk"></canvas></div>
+<div class="card" style="order:-1"><h2>Vue 3D : glissez P, Q (ou R) sur la surface (ailleurs : rotation)</h2><canvas id="v3"></canvas><p style="margin:6px 0 0;font-size:13px;color:var(--mut)">Orange : géodésique P–Q, intersection de la surface avec un plan passant par l’origine (grand cercle de la sphère, branche d’hyperbole sur l’hyperboloïde). Bleu : sa projection stéréographique dans le plan, c’est-à-dire l’arc de cercle vu dans le disque.</p></div>
+</div>
+<div class="ctl card">
+<label style="display:none"><span id="sL" style="min-width:90px">α</span><input id="s" type="range" min="-2.4" max="2.4" step="0.01" value="0.9"></label>
+<label style="display:none"><span style="min-width:90px">azimut φ</span><input id="p" type="range" min="0" max="6.283" step="0.01" value="0.6"></label>
+<label><input id="geo" type="checkbox" checked> Afficher des géodésiques</label>
+<label id="cmpL"><input id="cmp" type="checkbox"> Comparer sur l’hyperboloïde : géodésique de Minkowski et géodésique euclidienne</label>
+<label><input id="tri" type="checkbox"> Triangle PQR (géodésiques, angles, somme)</label>
+</div>
+<div class="info card" id="info"></div>
+<p style="text-align:center;color:var(--mut);font-size:13px;margin:16px 0 4px">Application réalisée par Lionel GERVAIS</p>
+<script>
+const $=id=>document.getElementById(id);
+let mode='H',geo=true,Q=[-0.5,0.3],RR=[0.45,-0.45],tri=false,DV=null,drag=null;
+function cl(p){const E=mode==='E',M=E?3.0:0.83,n=Math.hypot(p[0],p[1]);return n>M?[p[0]*M/n,p[1]*M/n]:p}
+function Qc(){return cl(Q)}
+function Rc(){return cl(RR)}
+function circ3(p1,p2,p3){const[ax,ay]=p1,[bx,by]=p2,[cx,cy]=p3,d=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));if(Math.abs(d)<1e-3)return null;const a2=ax*ax+ay*ay,b2=bx*bx+by*by,c2=cx*cx+cy*cy,ux=(a2*(by-cy)+b2*(cy-ay)+c2*(ay-by))/d,uy=(a2*(cx-bx)+b2*(ax-cx)+c2*(bx-ax))/d;return[ux,uy,Math.hypot(ax-ux,ay-uy)]}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setup(c){const r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);return[g,r.width,r.height]}
+function view(W,H,x0,x1,y0,y1){const k=Math.min(W/(x1-x0),H/(y1-y0)),cx=(x0+x1)/2,cy=(y0+y1)/2;return{k,X:x=>W/2+(x-cx)*k,Y:y=>H/2-(y-cy)*k}}
+function calc(){const s=+$('s').value,E=mode==='E';
+return E?{s,P:[Math.sin(s),-Math.cos(s)],pole:[0,1],u:Math.tan(s/2)}:{s,P:[Math.sinh(s),Math.cosh(s)],pole:[0,-1],u:Math.tanh(s/2)}}
+function side(){
+const [g,W,H]=setup($('side')),E=mode==='E',m=calc(),A=css('--a'),B=css('--b'),G=css('--grid'),F=css('--fg');
+const v=E?view(W,H,-3.2,3.2,-2.4,2.4):view(W,H,-5.8,5.8,-1.8,6.9);
+const L=(a,b,c,w=1,d=[])=>{g.beginPath();g.setLineDash(d);g.strokeStyle=c;g.lineWidth=w;g.moveTo(v.X(a[0]),v.Y(a[1]));g.lineTo(v.X(b[0]),v.Y(b[1]));g.stroke();g.setLineDash([])};
+const D=(p,c,r,t,dx=8,dy=-8)=>{g.beginPath();g.fillStyle=c;g.arc(v.X(p[0]),v.Y(p[1]),r,0,7);g.fill();if(t){g.font='13px system-ui';g.fillText(t,v.X(p[0])+dx,v.Y(p[1])+dy)}};
+const xm=E?3.2:5.8;
+L([-xm,0],[xm,0],G,1);L([0,-9],[0,9],G,1);
+if(E){g.beginPath();g.strokeStyle=F;g.lineWidth=1.5;g.arc(v.X(0),v.Y(0),v.k,0,7);g.stroke()}
+else{L([0,0],[xm,xm],G,1,[4,4]);L([0,0],[-xm,xm],G,1,[4,4]);
+g.beginPath();g.strokeStyle=F;g.lineWidth=1.5;for(let x=-xm;x<=xm;x+=0.1){const y=Math.sqrt(1+x*x);x===-xm?g.moveTo(v.X(x),v.Y(y)):g.lineTo(v.X(x),v.Y(y))}g.stroke();
+g.fillStyle=css('--mut');g.font='12px system-ui';g.fillText('cône de lumière',v.X(xm*0.55)+6,v.Y(xm*0.55)-4)}
+L([-1,0],[1,0],B,4);
+const U=[m.u,0];
+L(m.pole,m.P,A,1.5);L(m.pole,U,A,1.5);
+D(m.pole,F,4,E?'N':'S',8,E?-8:14);
+D(m.P,A,6,E?'P':'P');
+D(U,B,6,'U',-4,18);
+g.fillStyle=css('--mut');g.font='12px system-ui';g.fillText(E?'z':'t',v.X(0)+6,v.Y(E?2.3:6.7));g.fillText('x',v.X(xm)-12,v.Y(0)-6);
+g.fillStyle=B;g.fillText('disque unité',v.X(-1)-4,v.Y(0)+16);
+}
+function disk(){
+const [g,W,H]=setup($('disk')),E=mode==='E',m=calc(),A=css('--a'),B=css('--b'),G=css('--grid'),F=css('--fg');
+const R=E?3.2:1.2,v=view(W,H,-R,R,-R,R),c0=[v.X(0),v.Y(0)];DV={k:v.k,W,H};
+const circ=(r,col,w,fill)=>{g.beginPath();g.arc(c0[0],c0[1],r*v.k,0,7);if(fill){g.fillStyle=fill;g.fill()}g.strokeStyle=col;g.lineWidth=w;g.stroke()};
+circ(1,B,0,B+'22');
+for(let i=1;i<(E?6:mode==='X'?7:12);i++){const t=E?Math.tan(i*Math.PI/24*1.0*1):Math.tanh(i*0.2);circ(E?Math.tan(i*Math.PI/12):Math.tanh(i*0.4/2*1),G,1)}
+for(let i=0;i<12;i++){const a=i*Math.PI/6;g.beginPath();g.strokeStyle=G;g.lineWidth=1;g.moveTo(c0[0],c0[1]);g.lineTo(c0[0]+Math.cos(a)*R*2*v.k,c0[1]-Math.sin(a)*R*2*v.k);g.stroke()}
+if(geo&&mode==='X'){const ph0=+$('p').value,a0=[m.u*Math.cos(ph0),m.u*Math.sin(ph0)],r0=Math.tanh(1.2);DECO=[];for(let j=0;j<12;j++){const t=j*Math.PI/6;DECO.push(geoX(a0,[r0*Math.cos(t),r0*Math.sin(t)]).pts)}
+g.save();g.strokeStyle=css('--mut');g.lineWidth=1;DECO.forEach(pts=>{g.beginPath();pts.forEach((X,i)=>{const s=[v.X(X[0]/(1+X[2])),v.Y(X[1]/(1+X[2]))];i?g.lineTo(s[0],s[1]):g.moveTo(s[0],s[1])});g.stroke()});g.restore()}
+if(geo&&mode==='H'){const ph0=+$('p').value,a0=[m.u*Math.cos(ph0),m.u*Math.sin(ph0)],n0=a0[0]*a0[0]+a0[1]*a0[1],pa0=[v.X(a0[0]),v.Y(a0[1])];g.save();g.beginPath();g.arc(c0[0],c0[1],v.k,0,7);g.clip();g.strokeStyle=css('--mut');g.lineWidth=1;
+for(let j=0;j<12;j++){const t=j*Math.PI/6,pb=[v.X(Math.cos(t)),v.Y(Math.sin(t))];g.beginPath();if(n0<1e-6){g.moveTo(pa0[0],pa0[1]);g.lineTo(pb[0],pb[1])}else{const ps=[v.X(a0[0]/n0),v.Y(a0[1]/n0)];arcTo(g,circ3(pa0,pb,ps),pa0,pb,ps)}g.stroke()}g.restore()}
+if(geo&&mode==='E'){g.save();if(!E){g.beginPath();g.arc(c0[0],c0[1],v.k,0,7);g.clip()}
+g.strokeStyle=css('--mut');g.lineWidth=1;
+for(let k=0;k<8;k++)for(const c of[1.3,2.2]){const a=k*Math.PI/4,r=E?Math.sqrt(c*c+1):Math.sqrt(c*c-1);g.beginPath();g.arc(v.X(c*Math.cos(a)),v.Y(c*Math.sin(a)),r*v.k,0,7);g.stroke()}
+g.restore()}
+circ(1,B,2.5);if(mode==='X'){g.setLineDash([4,4]);circ(Math.tanh(1.2),F,1);g.setLineDash([])}
+const ph=+$('p').value,u=m.u,px=u*Math.cos(ph),py=u*Math.sin(ph);
+if(E)circ(Math.abs(u),A,1.5);
+if(E){g.beginPath();g.strokeStyle=A;g.lineWidth=1.5;g.moveTo(c0[0],c0[1]);g.lineTo(v.X(px),v.Y(py));g.stroke()}
+g.beginPath();g.fillStyle=A;g.arc(v.X(px),v.Y(py),6,0,7);g.fill();
+g.fillStyle=F;g.font='13px system-ui';g.fillText('U',v.X(px)+9,v.Y(py)-8);
+g.fillStyle=B;g.fillText('bord |u|=1',c0[0]+v.k*0.72,c0[1]-v.k*0.75);
+const q=Qc(),P2=p=>[v.X(p[0]),v.Y(p[1])],pa=P2([px,py]),pq=P2(q),n2=px*px+py*py;
+const t3=n2<1e-6?[0,0]:(E?[-px/n2,-py/n2]:[px/n2,py/n2]),p3=P2(t3),C=n2<1e-6?null:circ3(pa,pq,p3);
+g.beginPath();g.strokeStyle=cmp&&mode==='X'?'#a855f7':F;g.lineWidth=2.5;
+if(mode==='X'&&GEO){GEO.pts.forEach((X,i)=>{const s=P2([X[0]/(1+X[2]),X[1]/(1+X[2])]);i?g.lineTo(s[0],s[1]):g.moveTo(s[0],s[1])})}else if(!C){g.moveTo(pa[0],pa[1]);g.lineTo(pq[0],pq[1])}else{const[cx,cy,r]=C,M=2*Math.PI,m=x=>((x%M)+M)%M,ta=Math.atan2(pa[1]-cy,pa[0]-cx),tb=Math.atan2(pq[1]-cy,pq[0]-cx),tc=Math.atan2(p3[1]-cy,p3[0]-cx);g.arc(cx,cy,r,ta,tb,m(tc-ta)<m(tb-ta))}
+g.stroke();
+if(cmp&&mode==='H'&&GEO){g.beginPath();g.strokeStyle='#a855f7';g.lineWidth=2.5;g.setLineDash([6,4]);GEO.pts.forEach((X,i)=>{const s=P2([X[0]/(1+X[2]),X[1]/(1+X[2])]);i?g.lineTo(s[0],s[1]):g.moveTo(s[0],s[1])});g.stroke();g.setLineDash([])}
+if(cmp&&mode==='X'){g.beginPath();g.strokeStyle=F;g.lineWidth=2.5;g.setLineDash([6,4]);arcTo(g,C,pa,pq,p3);g.stroke();g.setLineDash([])}
+g.beginPath();g.fillStyle=F;g.arc(pq[0],pq[1],6,0,7);g.fill();g.fillText('V',pq[0]+9,pq[1]-8);if(tri&&TRI){const pj=X=>{const D0=E?1-X[2]:1+X[2],D=Math.abs(D0)<1e-6?1e-6:D0;let uu=X[0]/D,vv=X[1]/D;const n=Math.hypot(uu,vv);if(n>8){uu*=8/n;vv*=8/n}return[v.X(uu),v.Y(vv)]};
+g.beginPath();TRI.sides.forEach((sd,k)=>sd.forEach((X,i)=>{const p=pj(X);(k===0&&i===0)?g.moveTo(p[0],p[1]):g.lineTo(p[0],p[1])}));g.closePath();g.globalAlpha=0.18;g.fillStyle='#16a34a';g.fill();g.globalAlpha=1;g.strokeStyle='#16a34a';g.lineWidth=2.5;g.stroke();
+const W2=P2(Rc()),Vs=[pa,pq,W2],cen=[(pa[0]+pq[0]+W2[0])/3,(pa[1]+pq[1]+W2[1])/3],nm=['α','β','γ'];
+Vs.forEach((p,i)=>{const x=p[0]+(cen[0]-p[0])*0.35,y=p[1]+(cen[1]-p[1])*0.35;g.fillStyle='#16a34a';g.font='12px system-ui';g.fillText(nm[i]+'='+(isNaN(TRI.ang[i])?'—':(TRI.ang[i]*180/Math.PI).toFixed(0)+'°'),x-18,y+4)});
+g.beginPath();g.fillStyle=F;g.arc(W2[0],W2[1],6,0,7);g.fill();g.fillText('W',W2[0]+9,W2[1]-8)};
+}
+function info(){
+const m=calc(),s=m.s,E=mode==='E',u=m.u;
+$('sL').innerHTML=E?'angle α':'rapidité η';
+$('info').innerHTML=mode==='X'?infoX(s,u):E?
+`<p><b>Espace :</b> sphère <code>x²+y²+z²=1</code>, métrique euclidienne <code>ds² = dx²+dy²+dz²</code>.</p>
+<p><b>Projection :</b> stéréographique depuis N=(0,0,1) sur le plan z=0 : <code>(u,v) = (x,y)/(1−z)</code>.</p>
+<p><b>Métrique image :</b> <code>ds² = 4(du²+dv²)/(1+u²+v²)²</code>, courbure +1. L’hémisphère sud remplit le disque unité, le nord remplit le reste du plan (u→∞ au pôle N).</p>
+<p><b>Ici :</b> α = <span class="val">${(s*180/Math.PI).toFixed(1)}°</span>, u = tan(α/2) = <span class="val">${u.toFixed(3)}</span></p>`:
+`<p><b>Espace :</b> hyperboloïde <code>t²−x²−y²=1</code> (t>0) avec la métrique de Minkowski <code>ds² = −dt²+dx²+dy²</code>, qui induit sur la nappe une métrique définie positive.</p>
+<p><b>Projection :</b> stéréographique depuis S=(0,0,−1) sur le plan t=0 : <code>(u,v) = (x,y)/(1+t)</code>.</p>
+<p><b>Métrique image :</b> <code>ds² = 4(du²+dv²)/(1−u²−v²)²</code>, courbure −1. Toute la nappe tient dans le disque unité ; le bord |u|=1 est à l’infini.</p>
+<p><b>Ici :</b> η = <span class="val">${s.toFixed(2)}</span> (distance à l’origine), u = tanh(η/2) = <span class="val">${u.toFixed(3)}</span></p>`;
+{const ph=+$('p').value,A=[u*Math.cos(ph),u*Math.sin(ph)],q=Qc(),dx=A[0]-q[0],dy=A[1]-q[1],d2=dx*dx+dy*dy,na=A[0]*A[0]+A[1]*A[1],nq=q[0]*q[0]+q[1]*q[1];
+const d=mode==='X'?GEO.len:E?2*Math.atan(Math.sqrt(d2/(1+2*(A[0]*q[0]+A[1]*q[1])+na*nq))):Math.acosh(1+2*d2/((1-na)*(1-nq)));
+$('info').innerHTML+=`<p><b>Distance P–Q :</b> <span class="val">${d.toFixed(3)}</span> ${mode==='X'?'(longueur euclidienne, calculée numériquement)':E?'(rad, plus court arc de grand cercle)':'(distance hyperbolique)'}. Le trait noir est la géodésique : ${mode==='X'?'une courbe calculée numériquement':'un cercle '+(E?'passant par deux points antipodaux du bord':'orthogonal au bord')}.</p><p style="color:var(--mut)">Glissez U ou V dans le disque pour les déplacer.</p>`}
+if(tri&&TRI){const a=TRI.ang,sum=a[0]+a[1]+a[2],dg=x=>isNaN(x)?'—':(x*180/Math.PI).toFixed(1)+'°',ex=sum-Math.PI;const tx=E?`excès sphérique = aire = <span class="val">${ex.toFixed(3)}</span> (K = +1)`:mode==='H'?`défaut π − somme = aire = <span class="val">${(-ex).toFixed(3)}</span> (K = −1)`:`somme − π = ∫K dA = <span class="val">${ex.toFixed(3)}</span> (courbure non constante, pas d’aire simple)`;$('info').innerHTML+=`<p><b>Triangle PQR :</b> α = ${dg(a[0])} (en P), β = ${dg(a[1])} (en Q), γ = ${dg(a[2])} (en R). Somme = <span class="val">${dg(sum)}</span> ; ${tx}.</p>`}
+$('cmpL').style.display=mode==='E'?'none':'flex';
+if(cmp&&mode!=='E'&&GEO){const ph=+$('p').value,A=[u*Math.cos(ph),u*Math.sin(ph)],q=Qc(),dx=A[0]-q[0],dy=A[1]-q[1],na=A[0]*A[0]+A[1]*A[1],nq=q[0]*q[0]+q[1]*q[1],dm=Math.acosh(1+2*(dx*dx+dy*dy)/((1-na)*(1-nq)));$('info').innerHTML+=`<p><b>Comparaison :</b> <span style="font-weight:600">noir (en 3D : orange) = géodésique de Minkowski</span> (cercle orthogonal au bord, distance hyperbolique ${dm.toFixed(3)}) ; <span style="color:#a855f7;font-weight:600">violet = géodésique euclidienne</span> (calculée numériquement, longueur ${GEO.len.toFixed(3)}). Mêmes extrémités P et Q, trajectoires différentes.</p>`}
+$('bE').classList.toggle('on',mode!=='H');$('bH').classList.toggle('on',mode==='H');$('bS').classList.toggle('on',mode==='E');$('bX').classList.toggle('on',mode==='X');$('sub').style.display=mode==='H'?'none':'flex'}
+let yaw=0.6,pit=0.4,rot=null,V3=null,mdrag=null;
+function surf(u,v){const E=mode==='E',r2=u*u+v*v;return E?[2*u/(1+r2),2*v/(1+r2),(r2-1)/(r2+1)]:[2*u/(1-r2),2*v/(1-r2),(1+r2)/(1-r2)]}
+function v3(){
+const[g,W,H]=setup($('v3')),E=mode==='E',A=css('--a'),B=css('--b'),G=css('--grid'),F=css('--fg');
+const half=E?1.7:5.7,cz=E?0:2.2,k=Math.min(W,H)/(2*half),cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pit),sp=Math.sin(pit);
+const S=p=>{const x1=p[0]*cy-p[1]*sy,y1=p[0]*sy+p[1]*cy;return[W/2+x1*k,H/2-((p[2]-cz)*cp+y1*sp)*k]};
+V3={S,k,dep:p=>(p[0]*sy+p[1]*cy)*cp-(p[2]-cz)*sp};
+const poly=(pts,c,w,d=[])=>{g.beginPath();g.setLineDash(d);g.strokeStyle=c;g.lineWidth=w;pts.forEach((p,i)=>{const s=S(p);i?g.lineTo(s[0],s[1]):g.moveTo(s[0],s[1])});g.stroke();g.setLineDash([])};
+const dt=(p,c,r,t)=>{const s=S(p);g.beginPath();g.fillStyle=c;g.arc(s[0],s[1],r,0,7);g.fill();if(t){g.font='13px system-ui';g.fillText(t,s[0]+8,s[1]-8)}};
+const rings=E?[1,2,3,4,5].map(i=>Math.tan(i*Math.PI/12)):[1,2,3,4,5,6].map(i=>Math.tanh(i*0.2)),um=rings[rings.length-1];
+const MC=css('--mut');
+[...rings].reverse().forEach(u=>{g.beginPath();for(let a=0;a<=6.3;a+=0.1){const s=S(surf(u*Math.cos(a),u*Math.sin(a)));a?g.lineTo(s[0],s[1]):g.moveTo(s[0],s[1])}g.closePath();g.globalAlpha=0.09;g.fillStyle=B;g.fill();g.globalAlpha=1});
+rings.forEach((u,ix)=>{const pts=[],last=ix===rings.length-1;for(let a=0;a<=6.3;a+=0.1)pts.push(surf(u*Math.cos(a),u*Math.sin(a)));poly(pts,last?F:MC,last?2:1.2)});
+for(let j=0;j<12;j++){const a=j*Math.PI/6,pts=[];for(let i=0;i<=20;i++){const u=um*i/20;pts.push(surf(u*Math.cos(a),u*Math.sin(a)))}poly(pts,MC,1.2)}
+const circ=[];for(let a=0;a<=6.3;a+=0.1)circ.push([Math.cos(a),Math.sin(a),0]);poly(circ,B,2.5);
+const m=calc(),ph=+$('p').value,a=[m.u*Math.cos(ph),m.u*Math.sin(ph)],q=Qc();
+const P=surf(a[0],a[1]),Qp=surf(q[0],q[1]),pole=[0,0,E?1:-1],Ua=[a[0],a[1],0],Va=[q[0],q[1],0];
+const end=(X,U)=>E&&X[2]>0?U:X;
+poly([pole,end(P,Ua)],A,1,[4,3]);poly([pole,end(Qp,Va)],A,1,[4,3]);
+const dot=(x,y)=>E?x[0]*y[0]+x[1]*y[1]+x[2]*y[2]:x[2]*y[2]-x[0]*y[0]-x[1]*y[1];
+const c=dot(P,Qp),d=E?Math.acos(Math.max(-1,Math.min(1,c))):Math.acosh(Math.max(1,c));
+const g3=[],gp=[];
+for(let i=0;i<=60;i++){const s=i/60;let w1,w2;if(d<1e-6||(E&&Math.sin(d)<1e-6)){w1=1-s;w2=s}else if(E){w1=Math.sin((1-s)*d)/Math.sin(d);w2=Math.sin(s*d)/Math.sin(d)}else{w1=Math.sinh((1-s)*d)/Math.sinh(d);w2=Math.sinh(s*d)/Math.sinh(d)}
+const X=[0,1,2].map(j=>w1*P[j]+w2*Qp[j]);g3.push(X);const D=E?1-X[2]:1+X[2];if(Math.abs(D)>1e-6){const uu=X[0]/D,vv=X[1]/D;if(uu*uu+vv*vv<16)gp.push([uu,vv,0])}}
+const mk3=g3.slice(),mkp=gp.slice();
+if(mode==='X'&&GEO){g3.length=0;gp.length=0;GEO.pts.forEach(X=>{g3.push(X);gp.push([X[0]/(1+X[2]),X[1]/(1+X[2]),0])})}
+if(cmp&&mode!=='E'&&GEO){const eu=GEO.pts;poly(mkp,B,3);poly(mk3,A,3.5);poly(eu.map(X=>[X[0]/(1+X[2]),X[1]/(1+X[2]),0]),'#a855f7',3);poly(eu,'#a855f7',3.5)}else{poly(gp,B,3);poly(g3,A,3.5)}
+if(tri&&TRI){const tp=[];TRI.sides.forEach(sd=>sd.forEach(X=>tp.push(X)));g.beginPath();tp.forEach((X,i)=>{const s=S(X);i?g.lineTo(s[0],s[1]):g.moveTo(s[0],s[1])});g.closePath();g.globalAlpha=0.2;g.fillStyle='#16a34a';g.fill();g.globalAlpha=1;poly(tp,'#16a34a',3);const rc=Rc();dt(surf(rc[0],rc[1]),'#16a34a',8,'R');dt([rc[0],rc[1],0],B,5,'W')}
+dt(pole,F,4,E?'N':'S');dt(P,A,8,'P');dt(Qp,A,8,'Q');dt(Ua,B,5,'U');dt(Va,B,5,'V');
+}
+let GEO=null,DECO=null,cmp=false,TRI=null;
+function sidePts(a,b){if(mode==='X')return geoX(a,b).pts;const E=mode==='E',P=surf(a[0],a[1]),Qp=surf(b[0],b[1]),c=E?P[0]*Qp[0]+P[1]*Qp[1]+P[2]*Qp[2]:P[2]*Qp[2]-P[0]*Qp[0]-P[1]*Qp[1],d=E?Math.acos(Math.max(-1,Math.min(1,c))):Math.acosh(Math.max(1,c)),out=[];for(let i=0;i<=40;i++){const s=i/40;let w1,w2;if(d<1e-6||(E&&Math.sin(d)<1e-6)){w1=1-s;w2=s}else if(E){w1=Math.sin((1-s)*d)/Math.sin(d);w2=Math.sin(s*d)/Math.sin(d)}else{w1=Math.sinh((1-s)*d)/Math.sinh(d);w2=Math.sinh(s*d)/Math.sinh(d)}out.push([0,1,2].map(j=>w1*P[j]+w2*Qp[j]))}return out}
+function tan0(p){return[0,1,2].map(j=>-3*p[0][j]+4*p[1][j]-p[2][j])}
+function ang(V,t1,t2){let dot,n1,n2;if(mode==='H'){const M=(a,b)=>a[0]*b[0]+a[1]*b[1]-a[2]*b[2];dot=M(t1,t2);n1=Math.sqrt(M(t1,t1));n2=Math.sqrt(M(t2,t2))}else{let a=t1,b=t2;if(mode==='X'){const nn=[-V[0],-V[1],V[2]],nl=nn[0]*nn[0]+nn[1]*nn[1]+nn[2]*nn[2],pr=t=>{const k=(t[0]*nn[0]+t[1]*nn[1]+t[2]*nn[2])/nl;return[t[0]-k*nn[0],t[1]-k*nn[1],t[2]-k*nn[2]]};a=pr(t1);b=pr(t2)}const D=(u,w)=>u[0]*w[0]+u[1]*w[1]+u[2]*w[2];dot=D(a,b);n1=Math.sqrt(D(a,a));n2=Math.sqrt(D(b,b))}if(!(n1*n2>1e-12))return NaN;return Math.acos(Math.max(-1,Math.min(1,dot/(n1*n2))))}
+function triCalc(){const m=calc(),ph=+$('p').value,V=[[m.u*Math.cos(ph),m.u*Math.sin(ph)],Qc(),Rc()],A=sidePts(V[0],V[1]),B=sidePts(V[1],V[2]),C=sidePts(V[2],V[0]),r=a=>a.slice().reverse(),s=i=>surf(V[i][0],V[i][1]);return{ang:[ang(s(0),tan0(A),tan0(r(C))),ang(s(1),tan0(r(A)),tan0(B)),ang(s(2),tan0(r(B)),tan0(C))],sides:[A,B,C]}}
+function arcTo(g,C,pa,pq,p3){if(!C){g.moveTo(pa[0],pa[1]);g.lineTo(pq[0],pq[1]);return}const[cx,cy,r]=C,M=2*Math.PI,m=x=>((x%M)+M)%M,ta=Math.atan2(pa[1]-cy,pa[0]-cx),tb=Math.atan2(pq[1]-cy,pq[0]-cx),tc=Math.atan2(p3[1]-cy,p3[0]-cx);g.arc(cx,cy,r,ta,tb,m(tc-ta)<m(tb-ta))}
+const infoX=(s,u)=>`<p><b>Espace :</b> hyperboloïde <code>t²−x²−y²=1</code> mais avec la métrique <b>euclidienne</b> de ℝ³ : <code>ds² = dx²+dy²+dt²</code> (et non Minkowski).</p><p><b>Projection :</b> la même stéréographique depuis S=(0,0,−1) : <code>(u,v) = (x,y)/(1+t)</code>.</p><p><b>Conséquence :</b> la métrique induite n’est plus conforme au disque ni de courbure constante (la surface devient presque un cône loin de l’origine). Les géodésiques sont calculées numériquement : ce ne sont plus des cercles orthogonaux au bord. Les pointillés marquent la limite de la zone calculée (η = 2,4) ; la case « géodésiques » affiche celles qui partent de P.</p><p><b>Ici :</b> η = <span class="val">${s.toFixed(2)}</span>, u = tanh(η/2) = <span class="val">${u.toFixed(3)}</span></p>`;
+function geoX(a,q){
+
+const hz=(u,v)=>{const r2=u*u+v*v;return[2*u/(1-r2),2*v/(1-r2)]};
+const A0=hz(a[0],a[1]),B0=hz(q[0],q[1]),N=20,xs=[],ys=[];
+for(let i=0;i<=N;i++){xs.push(A0[0]+(B0[0]-A0[0])*i/N);ys.push(A0[1]+(B0[1]-A0[1])*i/N)}
+const X=i=>[xs[i],ys[i],Math.sqrt(1+xs[i]*xs[i]+ys[i]*ys[i])];
+const zs=xs.map((x,i)=>Math.sqrt(1+x*x+ys[i]*ys[i]));for(let it=0;it<800;it++)for(let i=1;i<N;i++){const cx=xs[i],cy=ys[i],cz=zs[i],gx=2*cx-xs[i-1]-xs[i+1],gy=2*cy-ys[i-1]-ys[i+1],gz=2*cz-zs[i-1]-zs[i+1];xs[i]=cx-0.25*(gx+gz*cx/cz);ys[i]=cy-0.25*(gy+gz*cy/cz);zs[i]=Math.sqrt(1+xs[i]*xs[i]+ys[i]*ys[i])}
+const pts=[];let len=0;for(let i=0;i<=N;i++){pts.push(X(i));if(i){const a=pts[i-1],b=pts[i];len+=Math.hypot(b[0]-a[0],b[1]-a[1],b[2]-a[2])}}
+return{pts,len}}
+function draw(){if(mode==='X'||(cmp&&mode==='H')){const m=calc(),ph=+$('p').value;GEO=geoX([m.u*Math.cos(ph),m.u*Math.sin(ph)],Qc())}else GEO=null;TRI=tri?triCalc():null;disk();v3();info()}
+const v3c=$('v3');
+const cp3=e=>{const r=v3c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
+const pickSurf=(x,y)=>{const E=mode==='E';let best=1e18,bs=0,bp=0;for(let i=0;i<=48;i++){const s=i*0.05,u=E?Math.tan(s/2):Math.tanh(s/2);for(let j=0;j<90;j++){const f=j*Math.PI/45,w=surf(u*Math.cos(f),u*Math.sin(f)),sc=V3.S(w),dx=sc[0]-x,dy=sc[1]-y,sv=dx*dx+dy*dy+1.5*V3.dep(w)*V3.k;if(sv<best){best=sv;bs=s;bp=f}}}return[bs,bp]};
+const v3m=e=>{if(mdrag){const[x,y]=cp3(e),[s,f]=pickSurf(x,y);if(mdrag==='P'){$('s').value=s;$('p').value=f}else{const u=mode==='E'?Math.tan(s/2):Math.tanh(s/2),w=[u*Math.cos(f),u*Math.sin(f)];if(mdrag==='R')RR=w;else Q=w}draw()}else if(rot){yaw=rot[2]+(e.clientX-rot[0])*0.01;pit=Math.max(-1.5,Math.min(1.5,rot[3]+(e.clientY-rot[1])*0.01));draw()}};
+v3c.onpointerdown=e=>{const[x,y]=cp3(e),m=calc(),ph=+$('p').value,sp=V3.S(surf(m.u*Math.cos(ph),m.u*Math.sin(ph))),q=Qc(),sq=V3.S(surf(q[0],q[1])),dp=Math.hypot(sp[0]-x,sp[1]-y),dq=Math.hypot(sq[0]-x,sq[1]-y);const r3=Rc(),sr=V3.S(surf(r3[0],r3[1])),dr=tri?Math.hypot(sr[0]-x,sr[1]-y):1e9,mn=Math.min(dp,dq,dr);if(mn<30)mdrag=mn===dp?'P':mn===dq?'Q':'R';else rot=[e.clientX,e.clientY,yaw,pit];v3c.setPointerCapture(e.pointerId);v3m(e)};
+v3c.onpointermove=v3m;
+v3c.onpointerup=v3c.onpointercancel=()=>{rot=null;mdrag=null};
+let eu='E';
+$('bE').onclick=()=>{mode=eu;draw()};$('bH').onclick=()=>{mode='H';draw()};
+$('bS').onclick=()=>{eu=mode='E';draw()};$('bX').onclick=()=>{eu=mode='X';draw()};
+$('s').oninput=$('p').oninput=draw;$('geo').onchange=e=>{geo=e.target.checked;draw()};$('cmp').onchange=e=>{cmp=e.target.checked;draw()};$('tri').onchange=e=>{tri=e.target.checked;draw()};
+const dk=$('disk');
+const pos=e=>{const r=dk.getBoundingClientRect(),px=(e.clientX-r.left)*(DV.W/r.width),py=(e.clientY-r.top)*(DV.H/r.height);return[(px-DV.W/2)/DV.k,-(py-DV.H/2)/DV.k]};
+const mv=e=>{if(!drag)return;const p=pos(e);if(drag==='Q'){Q=p}else if(drag==='R'){RR=p}else{const E=mode==='E',n=Math.hypot(p[0],p[1]);let s=E?2*Math.atan(n):2*Math.atanh(Math.min(n,0.999));$('s').value=Math.min(s,2.4);$('p').value=((Math.atan2(p[1],p[0])%6.283)+6.283)%6.283}draw()};
+dk.onpointerdown=e=>{const p=pos(e),m=calc(),ph=+$('p').value,a=[m.u*Math.cos(ph),m.u*Math.sin(ph)],q=Qc();{const cd=[['A',a],['Q',q]];if(tri)cd.push(['R',Rc()]);drag=cd.map(x=>[Math.hypot(p[0]-x[1][0],p[1]-x[1][1]),x[0]]).sort((x,y)=>x[0]-y[0])[0][1]}dk.setPointerCapture(e.pointerId);mv(e)};
+dk.onpointermove=mv;dk.onpointerup=dk.onpointercancel=()=>{drag=null};
+addEventListener('resize',draw);matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
+draw();
+</script></body></html>

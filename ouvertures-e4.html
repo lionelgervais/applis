@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ouvertures 1.e4 — arbre des variantes</title>
+<meta name="author" content="Lionel GERVAIS">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,500;0,700;1,500&family=Alegreya+Sans:wght@400;500;700&family=Noto+Sans+Symbols+2&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0F3; --panel:#F8FAFB; --ink:#1B2430; --muted:#5A6878; --rule:#C9D1DA;
+  --sq-light:#DCE2E8; --sq-dark:#7B8FA6; --coord-l:#7B8FA6; --coord-d:#E6EBF0;
+  --hl:rgba(232,190,70,.55); --fam-l:42%; --fam-bg-l:92%;
+  --serif:"Alegreya",Georgia,"Times New Roman",serif;
+  --sans:"Alegreya Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --chess:"Noto Sans Symbols 2","Segoe UI Symbol","DejaVu Sans","Apple Symbols",sans-serif;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#141A21; --panel:#1C242D; --ink:#E5EAF0; --muted:#9AA7B5; --rule:#334150;
+  --sq-light:#A9B6C4; --sq-dark:#55687E; --coord-l:#55687E; --coord-d:#C8D2DC;
+  --hl:rgba(232,190,70,.5); --fam-l:68%; --fam-bg-l:20%; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --paper:#141A21; --panel:#1C242D; --ink:#E5EAF0; --muted:#9AA7B5; --rule:#334150;
+  --sq-light:#A9B6C4; --sq-dark:#55687E; --coord-l:#55687E; --coord-d:#C8D2DC;
+  --hl:rgba(232,190,70,.5); --fam-l:68%; --fam-bg-l:20%; color-scheme:dark; }
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.45}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px;display:grid;gap:28px}
+@media (min-width:900px){ .wrap{grid-template-columns:minmax(360px,480px) 1fr;align-items:start;padding-top:32px}
+  .left{position:sticky;top:calc(16px + env(safe-area-inset-top,0px))} }
+
+header h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,44px);line-height:1;margin:0 0 6px;letter-spacing:-.01em}
+header h1 .pawn{font-family:var(--chess);font-weight:400;margin-right:.12em}
+header p{margin:0 0 16px;color:var(--muted);max-width:44ch}
+
+.board{container-type:inline-size;width:100%;aspect-ratio:1;display:grid;grid-template:repeat(8,1fr)/repeat(8,1fr);
+  border:3px solid var(--ink);border-radius:4px;overflow:hidden;user-select:none}
+.sq{position:relative;display:grid;place-items:center}
+.sq.l{background:var(--sq-light)} .sq.d{background:var(--sq-dark)}
+.sq.hl::before{content:"";position:absolute;inset:0;background:var(--hl)}
+.pc{position:relative;width:96%;height:96%;display:block;stroke-linejoin:round;stroke-linecap:round;stroke-width:1.5}
+.pc.w{fill:#F7F7F2;stroke:#1B2430} .pc.w .dt{stroke:#1B2430} .pc.w .ey{fill:#1B2430;stroke:none}
+.pc.b{fill:#202934;stroke:#0E141B} .pc.b .dt{stroke:#D7DEE6} .pc.b .ey{fill:#D7DEE6;stroke:none}
+.co{position:absolute;font-size:2.5cqw;font-weight:700;line-height:1;pointer-events:none}
+.co.f{right:3%;bottom:3%} .co.r{left:3%;top:3%}
+.sq.l .co{color:var(--coord-l)} .sq.d .co{color:var(--coord-d)}
+
+.ctrl{display:flex;gap:6px;margin:10px 0 0}
+.ctrl button{flex:1;min-height:44px;border:1px solid var(--rule);background:var(--panel);border-radius:8px;cursor:pointer;font-size:18px}
+.ctrl button:hover{border-color:var(--ink)}
+.ctrl button:disabled{opacity:.35;cursor:default}
+.ctrl .flip{flex:1.4;font-size:15px}
+
+.info{margin-top:18px;padding:16px 18px 18px;background:var(--panel);border-radius:10px;border-left:6px solid var(--fam,var(--rule))}
+.trail{display:flex;flex-wrap:wrap;gap:2px 4px;font-size:14px;color:var(--muted);margin-bottom:6px}
+.trail button{border:0;background:none;padding:0;cursor:pointer;color:var(--muted);text-decoration:underline;text-decoration-color:var(--rule);text-underline-offset:3px}
+.trail button:hover{color:var(--ink)}
+.trail span{opacity:.6}
+.info h2{font-family:var(--serif);font-size:28px;line-height:1.1;margin:0 0 10px;font-weight:700}
+.moves{font-family:var(--serif);font-size:18px;line-height:1.7;margin:0 0 10px}
+.moves button{border:0;background:none;padding:1px 3px;border-radius:4px;cursor:pointer}
+.moves button.now{background:var(--ink);color:var(--panel)}
+.moves .num{color:var(--muted);margin-left:4px}
+.moves .future{opacity:.45}
+.desc{margin:0;max-width:60ch}
+.why{margin:0 0 14px;padding:10px 14px 12px;background:var(--paper);border-radius:8px;border-left:3px solid var(--fam,var(--rule))}
+.why h3{margin:0 0 3px;font-family:var(--serif);font-size:17px;font-weight:700}
+.why p{margin:0;max-width:60ch}
+.next{margin-top:14px}
+.next h3{font-size:15px;font-weight:500;color:var(--muted);margin:0 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{border:1px solid var(--rule);background:var(--paper);border-radius:999px;padding:6px 12px;cursor:pointer;text-align:left;min-height:40px}
+.chips button:hover{border-color:var(--fam,var(--ink))}
+.chips b{font-family:var(--serif);font-weight:700;margin-right:6px}
+.end{color:var(--muted);font-style:italic;margin:0}
+
+.right h2{font-family:var(--serif);font-size:26px;margin:0 0 4px}
+.right .hint{margin:0 0 14px;color:var(--muted);font-size:15px}
+.tools{display:flex;gap:8px;margin-bottom:12px}
+.tools button{border:1px solid var(--rule);background:var(--panel);border-radius:8px;padding:6px 12px;cursor:pointer;min-height:40px}
+.tools button:hover{border-color:var(--ink)}
+.tree,.tree ul{list-style:none;margin:0;padding:0}
+.tree ul{margin-left:14px;padding-left:16px;border-left:2px solid var(--rule)}
+.tree li{position:relative;margin:4px 0}
+.tree ul>li::before{content:"";position:absolute;left:-16px;top:22px;width:14px;border-top:2px solid var(--rule)}
+.row{display:flex;align-items:stretch;gap:4px}
+.tog{width:30px;flex:none;border:0;background:none;cursor:pointer;color:var(--muted);font-size:13px;border-radius:6px}
+.tog:hover{background:var(--panel)}
+.tog.leaf{visibility:hidden}
+.node{flex:1;text-align:left;border:1px solid transparent;background:var(--panel);border-radius:8px;padding:6px 10px 7px;cursor:pointer;
+  border-left:4px solid var(--fam,var(--rule));display:flex;flex-wrap:wrap;gap:0 10px;align-items:baseline}
+.node:hover{border-color:var(--fam,var(--ink))}
+.node .nm{font-family:var(--serif);font-weight:700;font-size:17px}
+.node .mv{font-family:var(--serif);color:var(--muted);font-size:15px}
+.node.onpath{background:hsl(var(--h) 45% var(--fam-bg-l))}
+.node.cur{outline:2px solid var(--fam);outline-offset:1px}
+.tree li.closed>ul{display:none}
+.count{font-size:13px;color:var(--muted);font-family:var(--sans)}
+.eco{font-family:var(--sans);font-weight:700;font-size:13px;letter-spacing:.02em;padding:1px 7px;border-radius:5px;
+  background:var(--paper);border:1px solid var(--fam,var(--rule));color:var(--ink);white-space:nowrap}
+.info .eco{font-size:14px;vertical-align:4px;margin-left:8px}
+.node .eco{order:-1}
+.mode{display:inline-flex;margin:0 0 14px;border:1px solid var(--rule);border-radius:10px;overflow:hidden;background:var(--panel)}
+.mode button{border:0;background:none;padding:8px 18px;min-height:42px;cursor:pointer;font-weight:500}
+.mode button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.board.play .sq{cursor:pointer}
+.sq.sel::after,.sq.hint::after,.sq.bad::after{content:"";position:absolute;inset:0;pointer-events:none}
+.sq.sel::after{box-shadow:inset 0 0 0 4px var(--ink)}
+.sq.hint::after{box-shadow:inset 0 0 0 4px #2E9E6A;background:rgba(46,158,106,.25)}
+.sq.bad::after{background:rgba(205,60,50,.45)}
+.ctrl.training .nav{display:none}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin-left:8px;vertical-align:middle}
+.seg button{border:0;background:var(--paper);padding:6px 12px;min-height:38px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.tside{margin:0 0 10px}
+.scope{margin:0 0 12px;color:var(--muted);font-size:15px}
+.scope b{color:var(--ink);font-weight:700}
+.msg{margin:4px 0 12px;font-weight:500;min-height:1.45em}
+.msg.ok{color:hsl(150 50% var(--fam-l))} .msg.ko{color:hsl(4 60% var(--fam-l))}
+.tbtns{display:flex;gap:8px;flex-wrap:wrap}
+.tbtns button{border:1px solid var(--rule);background:var(--paper);border-radius:8px;padding:6px 14px;min-height:42px;cursor:pointer}
+.tbtns button:hover{border-color:var(--ink)}
+.tbtns button:disabled{opacity:.4;cursor:default}
+.score{margin:12px 0 0;color:var(--muted);font-size:15px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="left">
+    <header>
+      <h1><span class="pawn" aria-hidden="true">♙&#xFE0E;</span>Ouvertures en 1.e4</h1>
+      <p class="author" style="margin:0 0 10px;font-family:var(--serif);font-style:italic;font-size:18px;color:var(--ink)">par Lionel GERVAIS</p>
+      <p>Les grandes réponses noires au pion du roi et leurs variantes principales, sous forme d’arbre.</p>
+    </header>
+    <div class="mode" role="group" aria-label="Mode">
+      <button id="mExplore" aria-pressed="true">Explorer</button>
+      <button id="mTrain" aria-pressed="false">S’entraîner</button>
+    </div>
+    <div class="board" id="board" role="img" aria-label="Échiquier"></div>
+    <div class="ctrl" id="ctrl">
+      <button class="nav" id="bStart" aria-label="Position initiale">⏮</button>
+      <button class="nav" id="bPrev" aria-label="Coup précédent">◀</button>
+      <button class="nav" id="bNext" aria-label="Coup suivant">▶</button>
+      <button class="nav" id="bEnd" aria-label="Fin de la variante">⏭</button>
+      <button id="bFlip" class="flip">Retourner</button>
+    </div>
+    <article class="info" id="info">
+      <nav class="trail" id="trail" aria-label="Chemin dans l’arbre"></nav>
+      <h2><span id="name"></span><span class="eco" id="eco"></span></h2>
+      <p class="moves" id="moves"></p>
+      <div class="why" id="why"><h3 id="whyMv"></h3><p id="whyTx"></p></div>
+      <p class="desc" id="desc"></p>
+      <div class="next" id="next"></div>
+    </article>
+    <article class="info" id="train" hidden>
+      <p class="tside">Je joue<span class="seg"><button id="sW" aria-pressed="true">les Blancs</button><button id="sB" aria-pressed="false">les Noirs</button></span></p>
+      <p class="scope">Variantes travaillées : <b id="tScope"></b> (<span id="tCount"></span>)</p>
+      <h2><span id="tName"></span><span class="eco" id="tEco"></span></h2>
+      <p class="moves" id="tMoves"></p>
+      <div class="why" id="tWhy"></div>
+      <p class="msg" id="tMsg" aria-live="polite"></p>
+      <div class="tbtns"><button id="tHint">Indice</button><button id="tNew">Nouvelle ligne</button></div>
+      <p class="score" id="tScore"></p>
+    </article>
+  </section>
+  <section class="right">
+    <h2>Arbre des variantes</h2>
+    <p class="hint" id="hint">Touchez une branche pour afficher sa position. Flèches ← → au clavier pour rejouer les coups. Chaque étiquette indique le code ECO, la classification internationale des ouvertures (A00 à E99).</p>
+    <div class="tools">
+      <button id="bOpenAll">Tout déplier</button>
+      <button id="bCloseAll">Replier</button>
+    </div>
+    <ul class="tree" id="tree"></ul>
+  </section>
+</main>
+<script>
+const PIECES={
+P:'<path d="M22.5 9a4.5 4.5 0 0 0-2.6 8.2C17.5 18.7 16 21 16 23.5h3.2c-.6 3.6-3 6.7-6.2 8.5V36h19v-4c-3.2-1.8-5.6-4.9-6.2-8.5H29c0-2.5-1.5-4.8-3.9-6.3A4.5 4.5 0 0 0 22.5 9z"/>',
+R:'<path d="M11 36v-3h2.5L15 19l-3-3V9h4v2.5h4.5V9h4v2.5H29V9h4v7l-3 3 1.5 14H34v3z"/><path class="dt" d="M15 19h15M13.5 33h18" fill="none"/>',
+B:'<path d="M12.5 36h20l-1-3.5h-18z"/><path d="M17.3 32.5l1.3-4.2h7.8l1.3 4.2z"/><path d="M16.5 21c0-4.5 3-8 6-10 3 2 6 5.5 6 10 0 3.5-2 6-4 7.3h-4c-2-1.3-4-3.8-4-7.3z"/><circle cx="22.5" cy="8.6" r="2.4"/><path class="dt" d="M25.5 15.5l-4 4.5" fill="none"/>',
+N:'<path d="M13 36h21c0-9-1.2-16.5-6-21.5-2-2.1-4.5-3.2-6.5-3.3L21 7.5l-2.5 4.2c-3 1.6-6.8 5.8-8.3 9.3-.7 1.7.3 3.2 2 3.3l2.4.2 3.3-2.4c1.2 0 2.2.7 2.5 1.6-4 3-7.4 6.4-7.4 12.3z"/><circle class="ey" cx="20" cy="16.5" r="1.3"/>',
+Q:'<path d="M12 36h21l-1-3.5H13z"/><path d="M13 32.5l-2.5-17 5.6 9.2 2.6-12.2 3.8 11.7 3.8-11.7 2.6 12.2 5.6-9.2-2.5 17z"/><circle cx="10.5" cy="13.5" r="2.1"/><circle cx="16.3" cy="10.3" r="2.1"/><circle cx="22.5" cy="9.3" r="2.1"/><circle cx="28.7" cy="10.3" r="2.1"/><circle cx="34.5" cy="13.5" r="2.1"/>',
+K:'<path d="M21.3 4.5h2.4v2.6h2.6v2.4h-2.6v3.2h-2.4V9.5h-2.6V7.1h2.6z"/><path d="M12 36h21v-3.5H12z"/><path d="M13 32.5c-3.2-5-4.2-10.2-.2-12.6 3.6-2.1 7.7 0 9.7 3.6 2-3.6 6.1-5.7 9.7-3.6 4 2.4 3 7.6-.2 12.6z"/><path d="M22.5 23.5c-1.6-3-2.6-5.2-2.6-7.2a2.6 2.6 0 0 1 5.2 0c0 2-1 4.2-2.6 7.2z"/>'
+};
+// Mini moteur : applique des coups en notation algébrique (SAN)
+const Engine = (() => {
+  const FILES = "abcdefgh";
+  const sqName = s => FILES[s % 8] + (Math.floor(s / 8) + 1);
+  const sqIdx = n => FILES.indexOf(n[0]) + (parseInt(n[1]) - 1) * 8;
+  const isW = p => p && p === p.toUpperCase();
+  const colorOf = p => (p ? (isW(p) ? "w" : "b") : null);
+  function start() {
+    const b = Array(64).fill(null);
+    const back = "RNBQKBNR";
+    for (let f = 0; f < 8; f++) {
+      b[f] = back[f]; b[8 + f] = "P"; b[48 + f] = "p"; b[56 + f] = back[f].toLowerCase();
+    }
+    return { b, turn: "w", castle: { K: 1, Q: 1, k: 1, q: 1 }, ep: null };
+  }
+  const clone = s => ({ b: s.b.slice(), turn: s.turn, castle: { ...s.castle }, ep: s.ep });
+  const D = { N: [[1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]],
+    B: [[1,1],[1,-1],[-1,1],[-1,-1]], R: [[1,0],[-1,0],[0,1],[0,-1]] };
+  D.Q = D.B.concat(D.R); D.K = D.Q;
+  function reach(b, from, to, type, color, capture, ep) {
+    const ff = from % 8, fr = from >> 3, tf = to % 8, tr = to >> 3;
+    const df = tf - ff, dr = tr - fr;
+    if (type === "P") {
+      const dir = color === "w" ? 1 : -1;
+      if (!capture) {
+        if (df !== 0 || b[to]) return false;
+        if (dr === dir) return true;
+        const sr = color === "w" ? 1 : 6;
+        return dr === 2 * dir && fr === sr && !b[from + 8 * dir];
+      }
+      return Math.abs(df) === 1 && dr === dir && (b[to] || to === ep);
+    }
+    if (type === "N") return D.N.some(([a, c]) => a === df && c === dr);
+    if (type === "K") return Math.max(Math.abs(df), Math.abs(dr)) === 1;
+    const sf = Math.sign(df), sr2 = Math.sign(dr);
+    const diag = Math.abs(df) === Math.abs(dr) && df !== 0;
+    const line = (df === 0) !== (dr === 0);
+    if (type === "B" && !diag) return false;
+    if (type === "R" && !line) return false;
+    if (type === "Q" && !diag && !line) return false;
+    let f = ff + sf, r = fr + sr2;
+    while (f !== tf || r !== tr) { if (b[r * 8 + f]) return false; f += sf; r += sr2; }
+    return true;
+  }
+  function attacked(b, sq, by) {
+    for (let i = 0; i < 64; i++) {
+      const p = b[i]; if (!p || colorOf(p) !== by) continue;
+      const t = p.toUpperCase();
+      if (reach(b, i, sq, t, by, true, null)) return true;
+    }
+    return false;
+  }
+  function kingSafe(b, color) {
+    const k = b.indexOf(color === "w" ? "K" : "k");
+    return !attacked(b, k, color === "w" ? "b" : "w");
+  }
+  function move(s, san) {
+    const clean = san.replace(/[+#!?]/g, "");
+    const c = s.turn, n = clone(s);
+    const W = c === "w";
+    let from, to;
+    if (clean === "O-O" || clean === "O-O-O") {
+      const r = W ? 0 : 56, long = clean === "O-O-O";
+      from = r + 4; to = r + (long ? 2 : 6);
+      n.b[to] = n.b[from]; n.b[from] = null;
+      n.b[r + (long ? 3 : 5)] = n.b[r + (long ? 0 : 7)]; n.b[r + (long ? 0 : 7)] = null;
+      if (W) { n.castle.K = n.castle.Q = 0; } else { n.castle.k = n.castle.q = 0; }
+      n.ep = null; n.turn = W ? "b" : "w";
+      return { s: n, from, to };
+    }
+    const m = clean.match(/^([NBRQK])?([a-h])?([1-8])?(x)?([a-h][1-8])(=?([NBRQ]))?$/);
+    if (!m) throw new Error("SAN illisible : " + san);
+    const type = m[1] || "P", cap = !!m[4]; to = sqIdx(m[5]);
+    let cands = [];
+    for (let i = 0; i < 64; i++) {
+      const p = s.b[i];
+      if (!p || colorOf(p) !== c || p.toUpperCase() !== type) continue;
+      if (m[2] && FILES[i % 8] !== m[2]) continue;
+      if (m[3] && (i >> 3) + 1 !== +m[3]) continue;
+      if (s.b[to] && colorOf(s.b[to]) === c) continue;
+      if (type !== "P" && !!s.b[to] !== cap) continue;
+      if (reach(s.b, i, to, type, c, cap, s.ep)) cands.push(i);
+    }
+    const doMove = fr => {
+      const b = s.b.slice();
+      let p = b[fr];
+      if (type === "P" && to === s.ep && !b[to]) b[to + (W ? -8 : 8)] = null;
+      b[fr] = null;
+      if (m[7]) p = W ? m[7] : m[7].toLowerCase();
+      b[to] = p; return b;
+    };
+    if (cands.length > 1) cands = cands.filter(fr => kingSafe(doMove(fr), c));
+    if (cands.length !== 1) throw new Error("Coup ambigu ou illégal : " + san + " (" + cands.length + ")");
+    from = cands[0];
+    n.b = doMove(from);
+    n.ep = type === "P" && Math.abs(to - from) === 16 ? (from + to) / 2 : null;
+    if (type === "K") { if (W) n.castle.K = n.castle.Q = 0; else n.castle.k = n.castle.q = 0; }
+    [[0,"Q"],[7,"K"],[56,"q"],[63,"k"]].forEach(([q, k]) => { if (from === q || to === q) n.castle[k] = 0; });
+    if (!kingSafe(n.b, c)) throw new Error("Roi en échec après " + san);
+    n.turn = W ? "b" : "w";
+    return { s: n, from, to };
+  }
+  return { start, move, sqName };
+})();
+const TREE = {m:"e4",e:"B00–C99",n:"1.e4 — le pion du roi",d:"Le coup le plus populaire de l’histoire : il occupe le centre et libère d’un coup la dame et le fou f1. Choisissez une réponse noire pour explorer ses variantes.",c:[
+{m:"e5",e:"C20–C99",n:"Partie ouverte",d:"Réponse symétrique : les Noirs disputent le centre tout de suite. Mène aux ouvertures les plus classiques.",c:[
+ {m:"Nf3",e:"C40",n:"2.Cf3",d:"Le coup le plus joué : il attaque e5, développe une pièce et prépare le roque.",c:[
+  {m:"Nc6",e:"C44",n:"2…Cc6",d:"La défense naturelle de e5, en développant une pièce.",c:[
+   {m:"Bb5",e:"C60–C99",n:"Partie espagnole",d:"La Ruy López (1561). Le fou attaque le défenseur de e5 : pression indirecte et durable. L’une des ouvertures les plus profondes du jeu.",c:[
+    {m:"a6 Ba4 Nf6 O-O",e:"C78",n:"Espagnole, ligne principale",d:"Le coup de Morphy 3…a6 questionne le fou ; les Blancs roquent sans craindre pour e4, qui reste indirectement défendu.",c:[
+     {m:"Be7 Re1 b5 Bb3 d6 c3 O-O h3",e:"C92",n:"Espagnole fermée",d:"Manœuvres lentes : Cb1-d2-f1-g3 pour les Blancs, expansion à l’aile dame pour les Noirs. Le terrain de jeu des grands stratèges.",c:[]},
+     {m:"Be7 Re1 b5 Bb3 O-O c3 d5",e:"C89",n:"Attaque Marshall",d:"Le gambit 8…d5 : un pion sacrifié pour une attaque durable contre le roi blanc. Si redouté que beaucoup de Blancs l’évitent avec 8.a4 ou 8.h3.",c:[]},
+     {m:"Nxe4 d4 b5 Bb3 d5 dxe5 Be6",e:"C80",n:"Espagnole ouverte",d:"Les Noirs prennent e4 et obtiennent un jeu de pièces actif, au prix d’une structure un peu exposée.",c:[]}
+    ]},
+    {m:"Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5 Qxd8+ Kxd8",e:"C67",n:"Défense berlinoise",d:"Le « mur de Berlin » : finale sans dames, très solide pour les Noirs. Kramnik l’a rendue célèbre contre Kasparov en 2000.",c:[]},
+    {m:"a6 Bxc6 dxc6 O-O",e:"C69",n:"Espagnole, variante d’échange",d:"Les Blancs cèdent leur fou pour abîmer la structure noire et visent une finale où leur majorité à l’aile roi compte.",c:[]}
+   ]},
+   {m:"Bc4",e:"C50–C59",n:"Partie italienne",d:"Le fou vise f7, le point faible du camp noir, défendu par le seul roi.",c:[
+    {m:"Bc5",e:"C50",n:"Giuoco Piano",d:"Le « jeu tranquille » : les Noirs développent leur fou symétriquement.",c:[
+     {m:"c3 Nf6 d3 d6 O-O O-O",e:"C54",n:"Giuoco Pianissimo",d:"Plan lent et moderne (c3, d3, a4, Cbd2) : très prisé au plus haut niveau aujourd’hui.",c:[]},
+     {m:"b4 Bxb4 c3 Ba5 d4",e:"C52",n:"Gambit Evans",d:"Un pion contre un centre fort et un développement rapide : l’arme favorite des romantiques du XIXe siècle.",c:[]}
+    ]},
+    {m:"Nf6",e:"C55",n:"Défense des deux cavaliers",d:"Les Noirs contre-attaquent e4 au lieu de protéger f7.",c:[
+     {m:"Ng5 d5 exd5 Na5 Bb5+ c6 dxc6 bxc6 Be2 h6 Nf3 e4 Ne5",e:"C59",n:"Attaque Cg5, 5…Ca5",d:"Les Blancs gagnent un pion ; les Noirs obtiennent avance de développement et initiative.",c:[]},
+     {m:"Ng5 d5 exd5 Nxd5 Nxf7 Kxf7 Qf3+ Ke6",e:"C57",n:"Fegatello (Fried Liver)",d:"Le sacrifice en f7 traîne le roi noir au centre. Spectaculaire, mais les Noirs l’évitent avec 5…Ca5.",c:[]},
+     {m:"d3 Be7 O-O O-O",e:"C55",n:"Italienne tranquille, 4.d3",d:"Les Blancs protègent e4 et gardent la tension pour une longue partie de manœuvres.",c:[]}
+    ]}
+   ]},
+   {m:"d4 exd4 Nxd4",e:"C45",n:"Partie écossaise",d:"Les Blancs ouvrent le centre tout de suite : jeu clair et ouvert, remis au goût du jour par Kasparov.",c:[
+    {m:"Bc5 Be3 Qf6 c3 Nge7",e:"C45",n:"Écossaise, 4…Fc5",d:"Le fou et la dame pressent le cavalier centralisé en d4.",c:[]},
+    {m:"Nf6 Nxc6 bxc6 e5 Qe7 Qe2 Nd5 c4",e:"C45",n:"Variante Mieses",d:"Les Blancs chassent le cavalier ; les Noirs ont des pions doublés mais une paire de fous active.",c:[]}
+   ]},
+   {m:"Nc3 Nf6",e:"C47–C49",n:"Partie des quatre cavaliers",d:"Les quatre cavaliers sortent symétriquement : développement classique et sain.",c:[
+    {m:"Bb5 Nd4",e:"C48",n:"Défense Rubinstein",d:"Les Noirs rompent la symétrie par un contre-coup actif au centre.",c:[]},
+    {m:"d4 exd4 Nxd4",e:"C47",n:"Quatre cavaliers écossaise",d:"Combinaison des idées de l’écossaise et du développement rapide.",c:[]}
+   ]}
+  ]},
+  {m:"Nf6 Nxe5 d6 Nf3 Nxe4 d4 d5 Bd3",e:"C42",n:"Défense Petrov",d:"Contre-attaque symétrique sur e4. Réputée très solide et égalisante : une arme défensive de l’élite.",c:[]},
+  {m:"d6 d4 Nf6 Nc3 Nbd7",e:"C41",n:"Défense Philidor",d:"Défense solide mais un peu passive : e5 est maintenu par …d6 et …Cbd7.",c:[]}
+ ]},
+ {m:"f4",e:"C30–C39",n:"Gambit du roi",d:"Les Blancs offrent un pion pour ouvrir la colonne f et dominer le centre : l’ouverture romantique par excellence.",c:[
+  {m:"exf4 Nf3 g5 h4 g4 Ne5",e:"C39",n:"Gambit accepté (Kieseritzky)",d:"Les Noirs gardent le pion avec …g5 ; jeu tactique et très tranchant.",c:[]},
+  {m:"Bc5 Nf3 d6 c3",e:"C30",n:"Gambit refusé",d:"Le fou contrôle g1 et gêne le petit roque blanc.",c:[]},
+  {m:"d5 exd5 e4",e:"C31",n:"Contre-gambit Falkbeer",d:"Les Noirs répondent au sacrifice par un sacrifice.",c:[]}
+ ]},
+ {m:"Nc3 Nf6 f4 d5",e:"C29",n:"Partie viennoise",d:"Les Blancs préparent f4 dans de meilleures conditions qu’au gambit du roi.",c:[]},
+ {m:"d4 exd4 Qxd4 Nc6 Qe3",e:"C22",n:"Partie du centre",d:"La dame sort tôt et perd un temps après …Cc6 : rare à haut niveau.",c:[]}
+]},
+{m:"c5",e:"B20–B99",n:"Défense sicilienne",d:"La réponse la plus combative : déséquilibre immédiat, les Noirs échangent un pion d’aile contre un pion central.",c:[
+ {m:"Nf3",e:"B27",n:"2.Cf3",d:"Les Blancs préparent d4 et l’ouverture du centre.",c:[
+  {m:"d6",e:"B50",n:"2…d6",d:"Contrôle e5 et prépare …Cf6 : la porte d’entrée du Najdorf et du Dragon.",c:[
+   {m:"d4 cxd4 Nxd4 Nf6 Nc3",e:"B56",n:"Sicilienne ouverte",d:"Structure typique : les Blancs ont plus d’espace, les Noirs une majorité centrale et la colonne c.",c:[
+    {m:"a6",e:"B90–B99",n:"Variante Najdorf",d:"Le coup souple 5…a6, arme de Fischer et Kasparov : contrôle b5, prépare …e5 ou …e6 et …b5.",c:[
+     {m:"Be3 e5 Nb3 Be6 f3",e:"B90",n:"Attaque anglaise",d:"Fe3, f3, Dd2 et grand roque, puis g4 : roques opposés et attaques mutuelles.",c:[]},
+     {m:"Bg5 e6 f4",e:"B96",n:"Najdorf, 6.Fg5",d:"La ligne classique la plus tranchante, avec la variante du pion empoisonné après …Db6.",c:[]}
+    ]},
+    {m:"g6",e:"B70–B79",n:"Variante du Dragon",d:"Le fou en fianchetto en g7 rappelle la queue d’un dragon et crache le long de la grande diagonale.",c:[
+     {m:"Be3 Bg7 f3 O-O Qd2 Nc6 Bc4 Bd7 O-O-O",e:"B78",n:"Attaque yougoslave",d:"Course aux attaques : h4-h5 pour les Blancs, …Tc8 et …Ce5 pour les Noirs.",c:[]}
+    ]},
+    {m:"e6",e:"B80–B89",n:"Variante Scheveningen",d:"Petit centre d6-e6, très flexible et difficile à percer.",c:[
+     {m:"g4",e:"B81",n:"Attaque Keres",d:"Les Blancs chassent immédiatement le cavalier f6 avec g5.",c:[]}
+    ]},
+    {m:"Nc6",e:"B56",n:"Sicilienne classique",d:"Développement naturel des deux cavaliers noirs.",c:[
+     {m:"Bg5 e6 Qd2",e:"B63",n:"Attaque Richter-Rauzer",d:"Clouage du cavalier f6 puis grand roque blanc.",c:[]}
+    ]}
+   ]},
+   {m:"Bb5+",e:"B51",n:"Variante Moscou",d:"Un échec de fou pour éviter la théorie de la sicilienne ouverte.",c:[]}
+  ]},
+  {m:"Nc6",e:"B30",n:"2…Cc6",d:"Développe et surveille d4 : mène au Sveshnikov, au Dragon accéléré…",c:[
+   {m:"d4 cxd4 Nxd4 Nf6 Nc3 e5 Ndb5 d6 Bg5 a6 Na3 b5",e:"B33",n:"Variante Sveshnikov",d:"…e5 crée un trou en d5 mais donne un jeu très dynamique. Une arme de Carlsen.",c:[]},
+   {m:"d4 cxd4 Nxd4 g6",e:"B34",n:"Dragon accéléré",d:"Fianchetto sans …d6, pour pouvoir jouer …d5 en un seul temps.",c:[]},
+   {m:"Bb5",e:"B30",n:"Variante Rossolimo",d:"Évite la sicilienne ouverte ; les Blancs menacent de doubler les pions c.",c:[]}
+  ]},
+  {m:"e6",e:"B40",n:"2…e6",d:"Prépare …d5 ou …a6 : jeu souple de type « Paulsen ».",c:[
+   {m:"d4 cxd4 Nxd4 a6",e:"B41",n:"Variante Kan (Paulsen)",d:"Système souple : …a6, …Dc7 et …b5.",c:[]},
+   {m:"d4 cxd4 Nxd4 Nc6",e:"B44",n:"Variante Taimanov",d:"…Cc6 et …Dc7 : jeu de pièces flexible.",c:[]}
+  ]}
+ ]},
+ {m:"c3",e:"B22",n:"Variante Alapine",d:"Les Blancs préparent d4 pour reprendre avec un pion et garder un centre complet.",c:[
+  {m:"Nf6 e5 Nd5 d4 cxd4 Nf3",e:"B22",n:"Alapine, 2…Cf6",d:"Le cavalier attaque e4 et vient se poster en d5.",c:[]},
+  {m:"d5 exd5 Qxd5 d4",e:"B22",n:"Alapine, 2…d5",d:"La dame noire se centralise sans craindre Cc3, que c3 empêche.",c:[]}
+ ]},
+ {m:"Nc3 Nc6 g3 g6 Bg2 Bg7 d3 d6",e:"B25",n:"Sicilienne fermée",d:"Les Blancs renoncent à d4 et préparent f4 et une attaque à l’aile roi.",c:[]},
+ {m:"d4 cxd4 c3",e:"B21",n:"Gambit Smith-Morra",d:"Un pion contre une avance de développement et des colonnes ouvertes.",c:[]}
+]},
+{m:"e6",e:"C00–C19",n:"Défense française",d:"Les Noirs préparent …d5. Structure solide, mais le fou c8 est souvent enfermé.",c:[
+ {m:"d4 d5",e:"C00",n:"Française, position de base",d:"Le pion e4 est attaqué : les Blancs doivent le défendre, l’avancer ou l’échanger.",c:[
+  {m:"Nc3",e:"C10",n:"3.Cc3",d:"Les Blancs défendent e4 avec une pièce.",c:[
+   {m:"Bb4 e5 c5 a3 Bxc3+ bxc3 Ne7",e:"C18",n:"Variante Winawer",d:"Le clouage mène au déséquilibre : pions doublés blancs, mais paire de fous et attaque.",c:[]},
+   {m:"Nf6 Bg5 Be7 e5 Nfd7 Bxe7 Qxe7",e:"C14",n:"Française classique",d:"Le clouage Fg5 puis e5 : les Blancs gagnent de l’espace, les Noirs échangent leur fou de cases noires.",c:[]},
+   {m:"Nf6 e5 Nfd7 f4 c5 Nf3 Nc6 Be3",e:"C11",n:"Variante Steinitz",d:"Chaîne de pions d4-e5-f4 : les Noirs attaquent sa base avec …c5 et …f6.",c:[]},
+   {m:"dxe4 Nxe4 Nd7",e:"C10",n:"Variante Rubinstein",d:"Les Noirs cèdent le centre pour une position solide sans faiblesse.",c:[]}
+  ]},
+  {m:"Nd2",e:"C03–C09",n:"Variante Tarrasch",d:"Évite le clouage …Fb4, au prix d’un développement un peu moins actif.",c:[
+   {m:"c5 exd5 exd5",e:"C08",n:"Tarrasch, 3…c5",d:"Les Noirs risquent un pion isolé en d5 contre un jeu de pièces actif.",c:[]},
+   {m:"Nf6 e5 Nfd7 Bd3 c5 c3 Nc6 Ne2",e:"C06",n:"Tarrasch, 3…Cf6",d:"Structure d’avance typique, les Blancs gardent un centre solide.",c:[]}
+  ]},
+  {m:"e5 c5 c3 Nc6 Nf3 Qb6",e:"C02",n:"Variante d’avance",d:"Les Blancs prennent de l’espace ; les Noirs attaquent la chaîne de pions à sa base, d4.",c:[]},
+  {m:"exd5 exd5",e:"C01",n:"Variante d’échange",d:"Structure symétrique, réputée égalisante.",c:[]}
+ ]}
+]},
+{m:"c6",e:"B10–B19",n:"Défense Caro-Kann",d:"Prépare …d5 sans enfermer le fou c8 : une défense très solide.",c:[
+ {m:"d4 d5",e:"B12",n:"Caro-Kann, position de base",d:"Comme en française, le pion e4 est attaqué.",c:[
+  {m:"Nc3 dxe4 Nxe4",e:"B15",n:"Ligne principale",d:"Les Noirs échangent au centre et choisissent leur développement.",c:[
+   {m:"Bf5 Ng3 Bg6 h4 h6 Nf3 Nd7 h5 Bh7",e:"B19",n:"Variante classique",d:"Le fou sort avant …e6 ; les Blancs le chassent avec h4-h5 pour gagner de l’espace.",c:[]},
+   {m:"Nd7",e:"B17",n:"Variante Karpov",d:"Prépare …Cgf6 sans accepter de pions doublés.",c:[]},
+   {m:"Nf6 Nxf6+ exf6",e:"B15",n:"Variante Tartakower",d:"Pions doublés, mais développement rapide et roi bien protégé.",c:[]}
+  ]},
+  {m:"e5 Bf5",e:"B12",n:"Variante d’avance",d:"Contrairement à la française, le fou c8 sort avant …e6.",c:[]},
+  {m:"exd5 cxd5",e:"B13",n:"Variante d’échange",d:"Le centre s’ouvre ; deux plans très différents pour les Blancs.",c:[
+   {m:"c4 Nf6 Nc3",e:"B13",n:"Attaque Panov-Botvinnik",d:"Les Blancs acceptent un pion isolé en d4 contre un jeu actif.",c:[]},
+   {m:"Bd3 Nc6 c3",e:"B13",n:"Échange, 4.Fd3",d:"Structure de Carlsbad inversée : jeu lent et positionnel.",c:[]}
+  ]}
+ ]},
+ {m:"Nc3 d5 Nf3",e:"B11",n:"Variante des deux cavaliers",d:"Les Blancs développent sans jouer d4, pour garder de la souplesse.",c:[]}
+]},
+{m:"d5 exd5",e:"B01",n:"Défense scandinave",d:"Les Noirs attaquent e4 dès le premier coup.",c:[
+ {m:"Qxd5 Nc3",e:"B01",n:"2…Dxd5",d:"La dame reprend et doit se replier après Cc3.",c:[
+  {m:"Qa5 d4 Nf6 Nf3 c6",e:"B01",n:"Scandinave, 3…Da5",d:"La dame cloue le cavalier c3 depuis a5 : ligne principale classique.",c:[]},
+  {m:"Qd6 d4 Nf6 Nf3 a6",e:"B01",n:"Scandinave, 3…Dd6",d:"Version moderne : la dame contrôle le centre et la case b4.",c:[]},
+  {m:"Qd8",e:"B01",n:"Scandinave, 3…Dd8",d:"Retrait complet : solide mais passif.",c:[]}
+ ]},
+ {m:"Nf6 d4",e:"B01",n:"Scandinave moderne",d:"Les Noirs reprendront d5 avec le cavalier plutôt qu’avec la dame.",c:[]}
+]},
+{m:"Nf6 e5 Nd5 d4 d6",e:"B02–B05",n:"Défense Alekhine",d:"Provocation : le cavalier invite les pions blancs à avancer pour mieux les attaquer ensuite.",c:[
+ {m:"Nf3 Bg4 Be2 e6 O-O",e:"B05",n:"Variante moderne",d:"Les Blancs se contentent d’un centre modeste et d’un développement sain.",c:[]},
+ {m:"c4 Nb6 f4",e:"B03",n:"Attaque des quatre pions",d:"Le centre de pions maximal : impressionnant mais exposé.",c:[]},
+ {m:"c4 Nb6 exd6",e:"B03",n:"Variante d’échange",d:"Les Blancs gardent l’espace sans surétendre leurs pions.",c:[]}
+]},
+{m:"d6 d4 Nf6 Nc3 g6",e:"B07–B09",n:"Défense Pirc",d:"Hypermoderne : les Noirs laissent le centre aux Blancs pour le saper ensuite.",c:[
+ {m:"f4 Bg7 Nf3",e:"B09",n:"Attaque autrichienne",d:"Trois pions au centre : la tentative la plus agressive.",c:[]},
+ {m:"Be3 Bg7 Qd2",e:"B07",n:"Attaque 150",d:"Fe3, Dd2, Fh6 : on échange le fou g7 puis on attaque.",c:[]},
+ {m:"Nf3 Bg7 Be2 O-O O-O",e:"B08",n:"Pirc classique",d:"Développement calme et solide.",c:[]}
+]},
+{m:"g6 d4 Bg7 Nc3 d6",e:"B06",n:"Défense moderne",d:"Proche de la Pirc, mais les Noirs retardent …Cf6 pour garder plus de souplesse.",c:[]},
+{m:"Nc6 Nf3 d6 d4 Nf6 Nc3",e:"B00",n:"Défense Nimzowitsch",d:"Rare et provocante : le cavalier bloque le pion c mais gêne d4.",c:[]}
+]};
+// explications coup par coup, indexées par la suite de coups depuis le début
+const XN={
+"e4": [
+"Occupe le centre et ouvre d’un coup la diagonale de la dame et celle du fou f1. Le pion e4 n’est défendu par rien : les Noirs vont souvent l’attaquer."
+],
+"e4 e5": [
+"Réponse symétrique : les Noirs prennent leur part du centre et libèrent eux aussi la dame et le fou f8."
+],
+"e4 e5 Nf3": [
+"Développe en attaquant e5 : les Blancs gagnent un temps, car les Noirs doivent défendre leur pion."
+],
+"e4 e5 Nf3 Nc6": [
+"Défend e5 en développant une pièce, ce que …d6 ou …f6 ne font pas : c’est la défense la plus naturelle."
+],
+"e4 e5 Nf3 Nc6 Bb5": [
+"Le fou attaque le cavalier qui défend e5. La menace n’est pas immédiate (Fxc6 puis Cxe5 ne gagne rien tant que …Dd4 existe), mais la pression durera toute la partie."
+],
+"e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O": [
+"Le coup de Morphy : les Noirs demandent au fou de se décider, et gagneront plus tard un temps avec …b5.",
+"Les Blancs gardent le clouage plutôt que d’échanger : le fou reste dirigé vers c6 et, plus tard, vers f7.",
+"Développe en attaquant e4.",
+"Les Blancs ne défendent pas e4 : s’il est pris, …Cxe4 laisse le cavalier exposé sur la colonne e après Te1."
+],
+"e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 d6 c3 O-O h3": [
+"Développement modeste mais sûr : les Noirs préparent le roque sans se compromettre.",
+"La tour défend e4 et menace maintenant Fxc6 puis Cxe5.",
+"Chasse le fou et écarte la menace sur c6.",
+"Le fou se replace en b3, d’où il vise f7.",
+"Solidifie e5 et libère le fou c8.",
+"Prépare d4 et ménage une case de retraite en c2 pour le fou.",
+"Roi à l’abri.",
+"Empêche …Fg4, qui clouerait le cavalier f3 : les Blancs préparent d4 et la manœuvre Cbd2-f1-g3."
+],
+"e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Be7 Re1 b5 Bb3 O-O c3 d5": [
+"Développement en vue du roque.",
+"La tour défend e4.",
+"Chasse le fou.",
+"Le fou recule sur la diagonale de f7.",
+"Les Noirs roquent et préparent leur coup de surprise.",
+"Les Blancs préparent d4, mais affaiblissent un instant la défense de e5.",
+"Le gambit Marshall : un pion offert pour ouvrir le jeu et lancer toutes les pièces noires vers le roi blanc."
+],
+"e4 e5 Nf3 Nc6 Bb5 a6 Ba4 Nf6 O-O Nxe4 d4 b5 Bb3 d5 dxe5 Be6": [
+"Les Noirs prennent e4 tout de suite au lieu de développer : jeu ouvert et actif.",
+"Ouvre le centre pendant que le roi noir est encore au centre.",
+"Chasse le fou et libère c6 de la menace.",
+"Le fou se replie en gardant f7 en vue.",
+"Soutient le cavalier e4 et occupe le centre.",
+"Les Blancs récupèrent leur pion.",
+"Le fou protège d5 et se développe : les Noirs ont un jeu de pièces actif contre une structure un peu exposée."
+],
+"e4 e5 Nf3 Nc6 Bb5 Nf6 O-O Nxe4 d4 Nd6 Bxc6 dxc6 dxe5 Nf5 Qxd8+ Kxd8": [
+"Contre-attaque e4 tout de suite, sans perdre de temps avec …a6.",
+"Les Blancs ne défendent pas e4 : ils comptent récupérer le pion et ouvrir le jeu.",
+"Les Noirs prennent le pion.",
+"Attaque e5 et ouvre la colonne e vers le roi noir.",
+"Le cavalier recule en attaquant le fou b5.",
+"Les Blancs échangent pour ne pas perdre de temps.",
+"Reprendre vers le centre ouvre la colonne d pour l’échange des dames.",
+"Les Blancs récupèrent leur pion avec un pion avancé en e5.",
+"Le cavalier se replace en f5, d’où il ne peut plus être chassé facilement.",
+"Les Blancs échangent les dames : le roi noir ne pourra plus roquer.",
+"Le roi reprend : « mur de Berlin », finale où la paire de fous noire compense le roi au centre."
+],
+"e4 e5 Nf3 Nc6 Bb5 a6 Bxc6 dxc6 O-O": [
+"Pose la question au fou.",
+"Les Blancs échangent pour abîmer la structure noire : les pions c sont doublés.",
+"Reprendre vers le centre ouvre la diagonale du fou c8 et la colonne d.",
+"Le roque, et non Cxe5 : …Dd4 récupérerait le pion. Les Blancs visent une finale où leur majorité à l’aile roi comptera."
+],
+"e4 e5 Nf3 Nc6 Bc4": [
+"Le fou vise f7, le point le plus faible du camp noir, défendu seulement par le roi."
+],
+"e4 e5 Nf3 Nc6 Bc4 Bc5": [
+"Les Noirs répondent symétriquement : leur fou vise f2, la faiblesse correspondante chez les Blancs."
+],
+"e4 e5 Nf3 Nc6 Bc4 Bc5 c3 Nf6 d3 d6 O-O O-O": [
+"Prépare d4 et donne au fou une case de retraite en b3 ou c2.",
+"Développe en attaquant e4.",
+"Défend e4 tranquillement : les Blancs renoncent à d4 immédiat pour une longue partie de manœuvres.",
+"Défend e5 et libère le fou c8.",
+"Roi à l’abri.",
+"Les Noirs roquent à leur tour : position symétrique, riche en plans lents (a4, Cbd2-f1-g3, Te1)."
+],
+"e4 e5 Nf3 Nc6 Bc4 Bc5 b4 Bxb4 c3 Ba5 d4": [
+"Sacrifice d’un pion pour gagner du temps : les Blancs veulent jouer c3 et d4 en attaquant le fou.",
+"Les Noirs acceptent le pion.",
+"Attaque le fou avec gain de temps et prépare d4.",
+"Le fou se replie en gardant le contact avec c3.",
+"Le centre s’ouvre : les Blancs ont avance de développement et un centre puissant en échange du pion."
+],
+"e4 e5 Nf3 Nc6 Bc4 Nf6": [
+"Plutôt que de protéger f7, les Noirs contre-attaquent e4 : défense plus active mais plus risquée."
+],
+"e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Na5 Bb5+ c6 dxc6 bxc6 Be2 h6 Nf3 e4 Ne5": [
+"Attaque f7 deux fois, avec le cavalier et le fou.",
+"La meilleure défense : couper la diagonale du fou c4.",
+"Les Blancs prennent ; le fou c4 menace toujours via d5.",
+"Plutôt que de reprendre en d5 (ce qui autorise Cxf7), le cavalier attaque le fou c4.",
+"Échec : le fou évite l’échange en gagnant un temps.",
+"Interposition qui attaque le fou.",
+"Les Blancs gardent leur pion de plus.",
+"Les Noirs reprennent : pion de moins, mais colonnes ouvertes et développement rapide.",
+"Le fou recule en e2, sa seule bonne case.",
+"Chasse le cavalier g5.",
+"Le cavalier recule.",
+"Chasse encore le cavalier : les Noirs gagnent du temps.",
+"Le cavalier s’installe au centre : les Blancs ont un pion de plus, les Noirs l’initiative."
+],
+"e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Nxd5 Nxf7 Kxf7 Qf3+ Ke6": [
+"Attaque f7 deux fois.",
+"Coupe la diagonale du fou c4.",
+"Les Blancs prennent.",
+"La reprise naturelle, mais elle laisse f7 vulnérable : c’est l’erreur que les Blancs attendaient.",
+"Sacrifice du cavalier pour tirer le roi noir de sa cachette.",
+"Le roi est forcé de prendre.",
+"Échec, et la dame attaque en même temps le cavalier d5.",
+"Le roi doit monter défendre d5 : il restera exposé au centre pour longtemps."
+],
+"e4 e5 Nf3 Nc6 Bc4 Nf6 d3 Be7 O-O O-O": [
+"Défend e4 simplement : les Blancs évitent les complications de Cg5.",
+"Développement calme en vue du roque.",
+"Roi à l’abri.",
+"Les Noirs roquent aussi : partie lente, où les manœuvres comptent plus que les coups tactiques."
+],
+"e4 e5 Nf3 Nc6 d4 exd4 Nxd4": [
+"Les Blancs ouvrent le centre tout de suite, sans préparation par c3.",
+"Les Noirs prennent, sinon d5 ou dxe5 les gênerait.",
+"Le cavalier reprend et occupe le centre."
+],
+"e4 e5 Nf3 Nc6 d4 exd4 Nxd4 Bc5 Be3 Qf6 c3 Nge7": [
+"Le fou attaque le cavalier d4, qui n’est défendu que par la dame.",
+"Défend le cavalier en développant une pièce.",
+"Attaque d4 une troisième fois : les Noirs mettent la pression.",
+"Soutient le cavalier d4 par un pion.",
+"Le cavalier va en e7 et non en f6, où il gênerait la dame : il pourra soutenir …d5."
+],
+"e4 e5 Nf3 Nc6 d4 exd4 Nxd4 Nf6 Nxc6 bxc6 e5 Qe7 Qe2 Nd5 c4": [
+"Attaque e4.",
+"Les Blancs échangent pour gagner du temps avec e5.",
+"Les Noirs reprennent vers le centre : pions doublés, mais colonne b ouverte.",
+"Chasse le cavalier f6.",
+"La dame cloue e5 sur la colonne e et empêche e6.",
+"La dame blanche défend e5 en clouant à son tour.",
+"Le cavalier s’installe en d5.",
+"Chasse le cavalier et gagne de l’espace."
+],
+"e4 e5 Nf3 Nc6 Nc3 Nf6": [
+"Défend e4 en développant.",
+"Développement symétrique : les quatre cavaliers sont sortis."
+],
+"e4 e5 Nf3 Nc6 Nc3 Nf6 Bb5 Nd4": [
+"Le fou met la pression sur c6, comme dans l’espagnole.",
+"Plutôt que de défendre, les Noirs contre-attaquent le fou et le cavalier f3 : la symétrie est rompue."
+],
+"e4 e5 Nf3 Nc6 Nc3 Nf6 d4 exd4 Nxd4": [
+"Les Blancs ouvrent le centre comme dans l’écossaise.",
+"Les Noirs prennent.",
+"Le cavalier reprend en position centrale."
+],
+"e4 e5 Nf3 Nf6 Nxe5 d6 Nf3 Nxe4 d4 d5 Bd3": [
+"Les Noirs contre-attaquent e4 au lieu de défendre e5.",
+"Les Blancs prennent e5.",
+"Les Noirs chassent d’abord le cavalier : prendre e4 tout de suite permettrait De2.",
+"Le cavalier recule.",
+"Les Noirs récupèrent leur pion.",
+"Les Blancs occupent le centre.",
+"Soutient le cavalier e4.",
+"Le fou attaque le cavalier e4 : position symétrique et très solide."
+],
+"e4 e5 Nf3 d6 d4 Nf6 Nc3 Nbd7": [
+"Défend e5 avec un pion : solide, mais enferme le fou f8.",
+"Les Blancs attaquent e5 tout de suite.",
+"Contre-attaque e4.",
+"Défend e4.",
+"Défend e5 une deuxième fois : les Noirs gardent leur pion au centre, au prix d’une position un peu passive."
+],
+"e4 e5 f4": [
+"Les Blancs offrent le pion f pour détourner e5 : s’il est pris, ils occuperont le centre avec d4 et ouvriront la colonne f."
+],
+"e4 e5 f4 exf4 Nf3 g5 h4 g4 Ne5": [
+"Les Noirs acceptent.",
+"Empêche …Dh4+ et prépare d4.",
+"Les Noirs soutiennent le pion f4 avec le pion g.",
+"Attaque la chaîne g5-f4 par sa base.",
+"Les Noirs avancent plutôt que de lâcher f4.",
+"Le cavalier s’installe au centre : il vise f7 et g4."
+],
+"e4 e5 f4 Bc5 Nf3 d6 c3": [
+"Les Noirs refusent. Le fou contrôle g1 et empêche le petit roque blanc.",
+"Développe et empêche …Dh4+.",
+"Soutient e5 et le fou c5.",
+"Prépare d4 pour chasser le fou."
+],
+"e4 e5 f4 d5 exd5 e4": [
+"Les Noirs répondent au gambit par un contre-gambit au centre.",
+"Les Blancs prennent.",
+"Le pion e4 gêne le développement blanc, notamment le cavalier g1."
+],
+"e4 e5 Nc3 Nf6 f4 d5": [
+"Le cavalier défend e4 et surveille d5 : les Blancs préparent f4 sans risquer …Dh4+ aussi facilement.",
+"Développe en attaquant e4.",
+"Le gambit, dans de meilleures conditions qu’au deuxième coup.",
+"Les Noirs frappent au centre : la meilleure réponse à f4."
+],
+"e4 e5 d4 exd4 Qxd4 Nc6 Qe3": [
+"Les Blancs ouvrent le centre au deuxième coup.",
+"Les Noirs prennent.",
+"La dame reprend, mais elle sort très tôt.",
+"Les Noirs attaquent la dame en développant : ils gagnent un temps.",
+"La dame se replie. Les Noirs ont gagné un temps : c’est pourquoi cette ouverture est rare."
+],
+"e4 c5": [
+"Les Noirs contrôlent d4 avec le pion c plutôt qu’avec le pion e : ils échangeront un pion d’aile contre un pion central."
+],
+"e4 c5 Nf3": [
+"Prépare d4 et contrôle e5."
+],
+"e4 c5 Nf3 d6": [
+"Empêche e5 et prépare …Cf6 : la porte d’entrée du Najdorf et du Dragon."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3": [
+"Les Blancs ouvrent le centre.",
+"Les Noirs prennent : un pion d’aile contre un pion central.",
+"Le cavalier reprend et occupe le centre.",
+"Attaque e4 et gagne un temps.",
+"Défend e4 : la sicilienne ouverte est en place."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6": [
+"Coup d’attente très utile : contrôle b5 et prépare …e5 ou …e6 puis …b5."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Be3 e5 Nb3 Be6 f3": [
+"Le fou contrôle b6 et prépare Dd2 et le grand roque.",
+"Chasse le cavalier d4 et gagne de l’espace au centre.",
+"Le cavalier recule.",
+"Le fou contrôle d5, la case faible créée par …e5.",
+"Protège e4 et prépare g4 : les Blancs attaqueront à l’aile roi après le grand roque."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6 Bg5 e6 f4": [
+"Cloue le cavalier f6 et prépare f4.",
+"Défait la pression sur d5 et prépare …Fe7.",
+"Les Blancs menacent e5 : la ligne la plus tranchante."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6": [
+"Prépare le fianchetto : le fou g7 visera d4 et toute la grande diagonale."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6 Be3 Bg7 f3 O-O Qd2 Nc6 Bc4 Bd7 O-O-O": [
+"Prépare Dd2 et Fh6 pour échanger le fou g7.",
+"Fianchetto.",
+"Empêche …Cg4 et prépare g4.",
+"Roi à l’abri.",
+"Prépare Fh6 et le grand roque.",
+"Développe et attaque d4.",
+"Le fou vise f7 et empêche …d5.",
+"Développe et prépare …Tc8.",
+"Roques opposés : course aux attaques, h4-h5 pour les Blancs, …Tc8 et …Ce5 pour les Noirs."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 e6": [
+"Petit centre d6-e6, très solide : les Noirs attendent avant de s’engager."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 e6 g4": [
+"Menace g5 pour chasser le cavalier f6 : les Blancs attaquent tout de suite."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 Nc6": [
+"Développe en attaquant d4."
+],
+"e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 Nc6 Bg5 e6 Qd2": [
+"Cloue le cavalier f6 et empêche …g6.",
+"Défait la pression sur d5 et prépare …Fe7.",
+"Prépare le grand roque et Fxf6."
+],
+"e4 c5 Nf3 d6 Bb5+": [
+"Un échec qui évite la sicilienne ouverte : les Blancs simplifient en échangeant leur fou."
+],
+"e4 c5 Nf3 Nc6": [
+"Développe et contrôle d4."
+],
+"e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 Nf6 Nc3 e5 Ndb5 d6 Bg5 a6 Na3 b5": [
+"Les Blancs ouvrent le centre.",
+"Les Noirs prennent.",
+"Le cavalier reprend.",
+"Attaque e4.",
+"Défend e4.",
+"Chasse le cavalier d4 : les Noirs acceptent un trou en d5 pour du jeu actif.",
+"Le cavalier menace Cd6+.",
+"Empêche Cd6+.",
+"Cloue le cavalier f6, qui contrôle d5.",
+"Chasse le cavalier b5.",
+"Le cavalier recule.",
+"Gagne de l’espace et empêche Cc4 : les Noirs ont un jeu dynamique."
+],
+"e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 g6": [
+"Les Blancs ouvrent le centre.",
+"Les Noirs prennent.",
+"Le cavalier reprend.",
+"Fianchetto sans …d6 : les Noirs pourront jouer …d5 en un seul temps."
+],
+"e4 c5 Nf3 Nc6 Bb5": [
+"Le fou attaque le cavalier qui contrôle d4 : les Blancs évitent la sicilienne ouverte et menacent de doubler les pions c."
+],
+"e4 c5 Nf3 e6": [
+"Prépare …d5 ou …a6 : jeu souple."
+],
+"e4 c5 Nf3 e6 d4 cxd4 Nxd4 a6": [
+"Les Blancs ouvrent le centre.",
+"Les Noirs prennent.",
+"Le cavalier reprend.",
+"Contrôle b5 et prépare …Dc7 et …b5 : les Noirs gardent les deux options pour leurs pièces."
+],
+"e4 c5 Nf3 e6 d4 cxd4 Nxd4 Nc6": [
+"Les Blancs ouvrent le centre.",
+"Les Noirs prennent.",
+"Le cavalier reprend.",
+"Développe en attaquant d4 : les Noirs jouent avec leurs pièces avant de fixer leurs pions."
+],
+"e4 c5 c3": [
+"Prépare d4 : les Blancs reprendront avec le pion c et garderont un centre complet."
+],
+"e4 c5 c3 Nf6 e5 Nd5 d4 cxd4 Nf3": [
+"Attaque e4 : c3 a enlevé au cavalier b1 sa case pour défendre.",
+"Chasse le cavalier.",
+"Le cavalier se poste en d5.",
+"Les Blancs construisent leur centre.",
+"Les Noirs prennent.",
+"Développe : le pion sera repris par cxd4."
+],
+"e4 c5 c3 d5 exd5 Qxd5 d4": [
+"Les Noirs ouvrent le centre tout de suite.",
+"Les Blancs prennent.",
+"La dame reprend sans crainte de Cc3, puisque c3 est occupé.",
+"Les Blancs occupent le centre."
+],
+"e4 c5 Nc3 Nc6 g3 g6 Bg2 Bg7 d3 d6": [
+"Le cavalier contrôle d5 : les Blancs renoncent à d4.",
+"Développe et contrôle d4.",
+"Prépare le fianchetto.",
+"Les Noirs font de même.",
+"Le fou vise d5 et l’aile dame.",
+"Fianchetto.",
+"Les Blancs gardent un centre fermé et préparent f4.",
+"Les Noirs consolident."
+],
+"e4 c5 d4 cxd4 c3": [
+"Les Blancs ouvrent le centre tout de suite.",
+"Les Noirs prennent.",
+"Offre un pion pour accélérer le développement et ouvrir les colonnes c et d."
+],
+"e4 e6": [
+"Prépare …d5 : les Noirs attaqueront e4 avec un pion soutenu. Le fou c8 sera enfermé derrière e6."
+],
+"e4 e6 d4 d5": [
+"Les Blancs occupent le centre.",
+"Attaque e4 : les Blancs doivent le défendre, l’avancer ou l’échanger."
+],
+"e4 e6 d4 d5 Nc3": [
+"Défend e4 avec une pièce."
+],
+"e4 e6 d4 d5 Nc3 Bb4 e5 c5 a3 Bxc3+ bxc3 Ne7": [
+"Cloue le cavalier qui défend e4.",
+"Les Blancs avancent : ils gagnent de l’espace et ferment le centre.",
+"Attaque la chaîne de pions à sa base, d4.",
+"Demande au fou de se décider.",
+"Les Noirs cèdent le fou pour doubler les pions blancs.",
+"Pions doublés, mais la paire de fous.",
+"Le cavalier va en e7 (f6 est contrôlé par e5) et pourra venir en f5 ou c6."
+],
+"e4 e6 d4 d5 Nc3 Nf6 Bg5 Be7 e5 Nfd7 Bxe7 Qxe7": [
+"Attaque e4.",
+"Cloue le cavalier f6.",
+"Défait le clouage.",
+"Chasse le cavalier en gagnant de l’espace.",
+"Le cavalier recule et pourra soutenir …c5.",
+"Les Blancs échangent les fous.",
+"La dame reprend : les Noirs se sont débarrassés de leur fou de cases noires."
+],
+"e4 e6 d4 d5 Nc3 Nf6 e5 Nfd7 f4 c5 Nf3 Nc6 Be3": [
+"Attaque e4.",
+"Chasse le cavalier.",
+"Le cavalier recule.",
+"Soutient e5 : la chaîne de pions d4-e5-f4.",
+"Les Noirs attaquent la base de la chaîne.",
+"Défend d4 et e5.",
+"Deuxième attaque sur d4.",
+"Le fou défend d4 une troisième fois."
+],
+"e4 e6 d4 d5 Nc3 dxe4 Nxe4 Nd7": [
+"Les Noirs prennent : ils cèdent le centre pour une position solide.",
+"Le cavalier reprend en position centrale.",
+"Prépare …Cgf6 sans accepter les pions doublés après Cxf6+."
+],
+"e4 e6 d4 d5 Nd2": [
+"Défend e4 en évitant le clouage …Fb4 : le cavalier ne bloque pas le pion c."
+],
+"e4 e6 d4 d5 Nd2 c5 exd5 exd5": [
+"Attaque d4.",
+"Les Blancs échangent pour isoler le pion d5.",
+"Les Noirs reprennent : pion isolé, mais pièces actives."
+],
+"e4 e6 d4 d5 Nd2 Nf6 e5 Nfd7 Bd3 c5 c3 Nc6 Ne2": [
+"Attaque e4.",
+"Chasse le cavalier.",
+"Le cavalier recule.",
+"Le fou vise h7.",
+"Attaque d4.",
+"Soutient d4.",
+"Deuxième attaque sur d4.",
+"Le cavalier défend d4 et pourra aller en f4."
+],
+"e4 e6 d4 d5 e5 c5 c3 Nc6 Nf3 Qb6": [
+"Les Blancs avancent et gagnent de l’espace.",
+"Attaque la base de la chaîne d4-e5.",
+"Soutient d4.",
+"Deuxième attaque sur d4.",
+"Défend d4.",
+"Troisième attaque sur d4, et la dame vise b2."
+],
+"e4 e6 d4 d5 exd5 exd5": [
+"Les Blancs échangent : structure symétrique.",
+"Les Noirs reprennent : leur fou c8 est libéré."
+],
+"e4 c6": [
+"Prépare …d5 sans enfermer le fou c8, à la différence de la française."
+],
+"e4 c6 d4 d5": [
+"Les Blancs occupent le centre.",
+"Attaque e4 avec un pion soutenu par c6."
+],
+"e4 c6 d4 d5 Nc3 dxe4 Nxe4": [
+"Défend e4.",
+"Les Noirs prennent.",
+"Le cavalier reprend en position centrale."
+],
+"e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5 Ng3 Bg6 h4 h6 Nf3 Nd7 h5 Bh7": [
+"Le fou sort avant …e6 et attaque le cavalier.",
+"Le cavalier recule en attaquant le fou.",
+"Le fou recule.",
+"Menace h5 pour piéger le fou.",
+"Donne une case de retraite au fou.",
+"Développe.",
+"Prépare …Cgf6.",
+"Gagne de l’espace et fixe l’aile roi noire.",
+"Le fou recule."
+],
+"e4 c6 d4 d5 Nc3 dxe4 Nxe4 Nd7": [
+"Prépare …Cgf6 sans accepter les pions doublés."
+],
+"e4 c6 d4 d5 Nc3 dxe4 Nxe4 Nf6 Nxf6+ exf6": [
+"Attaque le cavalier e4.",
+"Les Blancs échangent.",
+"Pions doublés, mais développement rapide et roi bien protégé."
+],
+"e4 c6 d4 d5 e5 Bf5": [
+"Les Blancs avancent et gagnent de l’espace.",
+"Le fou sort avant …e6 : il ne sera pas enfermé."
+],
+"e4 c6 d4 d5 exd5 cxd5": [
+"Les Blancs échangent.",
+"Les Noirs reprennent."
+],
+"e4 c6 d4 d5 exd5 cxd5 c4 Nf6 Nc3": [
+"Attaque d5 : les Blancs acceptent un pion isolé en d4.",
+"Défend d5.",
+"Deuxième attaque sur d5."
+],
+"e4 c6 d4 d5 exd5 cxd5 Bd3 Nc6 c3": [
+"Le fou vise h7.",
+"Développe et attaque d4.",
+"Soutient d4."
+],
+"e4 c6 Nc3 d5 Nf3": [
+"Développe en gardant de la souplesse.",
+"Attaque e4.",
+"Développe sans jouer d4."
+],
+"e4 d5 exd5": [
+"Les Noirs attaquent e4 tout de suite.",
+"Les Blancs prennent."
+],
+"e4 d5 exd5 Qxd5 Nc3": [
+"La dame reprend : elle sort tôt.",
+"Le cavalier attaque la dame avec gain de temps."
+],
+"e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 c6": [
+"La dame se replie en a5, d’où elle cloue le cavalier c3.",
+"Les Blancs occupent le centre.",
+"Développe.",
+"Développe.",
+"Donne une case de retraite à la dame en c7."
+],
+"e4 d5 exd5 Qxd5 Nc3 Qd6 d4 Nf6 Nf3 a6": [
+"La dame se replie en d6 : elle contrôle le centre et b4.",
+"Les Blancs occupent le centre.",
+"Développe.",
+"Développe.",
+"Empêche Cb5, qui attaquerait la dame."
+],
+"e4 d5 exd5 Qxd5 Nc3 Qd8": [
+"Retrait complet : solide, mais les Noirs ont perdu du temps."
+],
+"e4 d5 exd5 Nf6 d4": [
+"Les Noirs reprendront d5 avec le cavalier plutôt qu’avec la dame.",
+"Les Blancs occupent le centre."
+],
+"e4 Nf6 e5 Nd5 d4 d6": [
+"Provocation : le cavalier invite les pions blancs à avancer.",
+"Chasse le cavalier.",
+"Le cavalier se replie au centre.",
+"Les Blancs occupent le centre.",
+"Attaque le pion e5, qui commence à être exposé."
+],
+"e4 Nf6 e5 Nd5 d4 d6 Nf3 Bg4 Be2 e6 O-O": [
+"Développe et défend e5.",
+"Cloue le cavalier f3.",
+"Défait le clouage.",
+"Libère le fou f8.",
+"Roi à l’abri."
+],
+"e4 Nf6 e5 Nd5 d4 d6 c4 Nb6 f4": [
+"Chasse le cavalier.",
+"Le cavalier se replie.",
+"Le centre de pions maximal : impressionnant mais exposé."
+],
+"e4 Nf6 e5 Nd5 d4 d6 c4 Nb6 exd6": [
+"Chasse le cavalier.",
+"Le cavalier se replie.",
+"Les Blancs échangent pour garder un centre solide sans surétendre leurs pions."
+],
+"e4 d6 d4 Nf6 Nc3 g6": [
+"Les Noirs laissent le centre aux Blancs.",
+"Les Blancs occupent le centre.",
+"Attaque e4.",
+"Défend e4.",
+"Prépare le fianchetto : le fou g7 visera d4."
+],
+"e4 d6 d4 Nf6 Nc3 g6 f4 Bg7 Nf3": [
+"Trois pions au centre : la tentative la plus agressive.",
+"Fianchetto.",
+"Développe et soutient e5."
+],
+"e4 d6 d4 Nf6 Nc3 g6 Be3 Bg7 Qd2": [
+"Prépare Dd2 et Fh6.",
+"Fianchetto.",
+"Prépare Fh6 pour échanger le fou g7."
+],
+"e4 d6 d4 Nf6 Nc3 g6 Nf3 Bg7 Be2 O-O O-O": [
+"Développe.",
+"Fianchetto.",
+"Développe.",
+"Roi à l’abri.",
+"Les Blancs roquent."
+],
+"e4 g6 d4 Bg7 Nc3 d6": [
+"Prépare le fianchetto.",
+"Les Blancs occupent le centre.",
+"Fianchetto.",
+"Développe.",
+"Prépare …Cf6 ou …c5."
+],
+"e4 Nc6 Nf3 d6 d4 Nf6 Nc3": [
+"Le cavalier contrôle d4 et e5, mais bloque le pion c.",
+"Développe.",
+"Prépare …e5.",
+"Les Blancs occupent le centre.",
+"Attaque e4.",
+"Défend e4."
+]
+};
+const HUES=[22,212,150,275,45,330,190,95,0];
+const FIG={N:"♘",B:"♗",R:"♖",Q:"♕",K:"♔"};
+const fig=m=>m.replace(/^[NBRQK]/,c=>FIG[c]);
+
+// préparation de l'arbre : parents, familles, numéros de demi-coups
+let uid=0;const ALL=[];
+(function prep(n,parent,ply,fam){
+  n.id=uid++;n.parent=parent;n.moves=n.m.split(" ");n.ply0=ply;n.fam=fam;ALL.push(n);
+  n.c.forEach((ch,i)=>prep(ch,n,ply+n.moves.length,parent?fam:i));
+})(TREE,null,0,-1);
+(function ax(n,pre){const p=pre.concat(n.moves);n.x=XN[p.join(" ")]||[];n.c.forEach(c=>ax(c,p));})(TREE,[]);
+const famColor=f=>f<0?null:HUES[f%HUES.length];
+
+function moveText(n){
+  return n.moves.map((m,i)=>{const p=n.ply0+i;
+    if(p%2===0)return (p/2+1)+"."+fig(m);
+    return (i===0?((p-1)/2+1)+"…":"")+fig(m);}).join(" ");
+}
+
+let path=[TREE],cursor=1,flipped=false;
+const pathOf=n=>{const a=[];while(n){a.unshift(n);n=n.parent;}return a;};
+const totalPlies=()=>{const l=path[path.length-1];return l.ply0+l.moves.length;};
+const allMoves=()=>path.flatMap(n=>n.moves);
+const nodeAt=c=>{if(c===0)return null;for(const n of path)if(c<=n.ply0+n.moves.length)return n;return path[path.length-1];};
+
+function position(c){
+  let s=Engine.start(),last=null;const mv=allMoves();
+  for(let i=0;i<c;i++){const r=Engine.move(s,mv[i]);s=r.s;last=r;}
+  return {s,last};
+}
+
+const $=id=>document.getElementById(id);
+function drawBoard(){
+  const {s,last}=TR.on?{s:TR.s,last:TR.last}:position(cursor);const el=$("board");el.innerHTML="";
+  el.classList.toggle("play",TR.on&&!TR.done&&s.turn===TR.side);
+  for(let row=0;row<8;row++)for(let col=0;col<8;col++){
+    const r=flipped?row:7-row,f=flipped?7-col:col,i=r*8+f;
+    const d=document.createElement("div");d.className="sq "+((r+f)%2?"l":"d");
+    if(last&&(i===last.from||i===last.to))d.classList.add("hl");
+    d.dataset.i=i;
+    if(TR.on){if(i===TR.sel)d.classList.add("sel");if(TR.hint.includes(i))d.classList.add("hint");if(i===TR.bad)d.classList.add("bad");}
+    const p=s.b[i];
+    if(p)d.insertAdjacentHTML("beforeend",`<svg class="pc ${p===p.toUpperCase()?"w":"b"}" viewBox="3 0 39 39" aria-hidden="true">${PIECES[p.toUpperCase()]}</svg>`);
+    if(col===0){const c=document.createElement("span");c.className="co r";c.textContent=r+1;d.appendChild(c);}
+    if(row===7){const c=document.createElement("span");c.className="co f";c.textContent="abcdefgh"[f];d.appendChild(c);}
+    el.appendChild(d);
+  }
+  if(TR.on){el.setAttribute("aria-label","Échiquier d’entraînement, vous jouez les "+(TR.side==="w"?"Blancs":"Noirs"));return;}
+  const mv=allMoves();
+  el.setAttribute("aria-label",cursor?"Échiquier après "+cursor+" demi-coups, dernier coup "+mv[cursor-1]:"Échiquier, position initiale");
+}
+
+function setFam(el,n){const h=n?famColor(n.fam):null;
+  if(h===null){el.style.removeProperty("--fam");el.style.removeProperty("--h");}
+  else{el.style.setProperty("--fam",`hsl(${h} 55% var(--fam-l))`);el.style.setProperty("--h",h);}}
+
+function drawInfo(){
+  const cur=nodeAt(cursor),info=$("info");setFam(info,cur);
+  // fil d'Ariane
+  const tr=$("trail");tr.innerHTML="";
+  path.forEach((n,i)=>{if(i){const s=document.createElement("span");s.textContent="›";tr.appendChild(s);}
+    const b=document.createElement("button");b.textContent=n.n;b.onclick=()=>select(n);tr.appendChild(b);});
+  $("name").textContent=cur?cur.n:"Position initiale";
+  $("eco").textContent=cur?cur.e:"";$("eco").hidden=!cur;$("eco").title=cur?"Code ECO":"";
+  // coups
+  const mv=$("moves");mv.innerHTML="";const all=allMoves();
+  all.forEach((m,i)=>{
+    if(i%2===0){const s=document.createElement("span");s.className="num"+(i>=cursor?" future":"");s.textContent=(i/2+1)+".";mv.appendChild(s);}
+    const b=document.createElement("button");b.textContent=fig(m);
+    if(i===cursor-1)b.className="now";else if(i>=cursor)b.className="future";
+    b.onclick=()=>{cursor=i+1;render();};mv.appendChild(b);
+  });
+  showWhy("why","whyMv","whyTx",cursor-1,all[cursor-1],noteAt(cursor-1));
+  $("desc").textContent=cur?cur.d:"Cliquez sur ▶ pour jouer 1.e4.";
+  // suites
+  const nx=$("next");nx.innerHTML="";
+  const base=cur||TREE;
+  const atEnd=cur&&cursor===cur.ply0+cur.moves.length;
+  if(!cur){return;}
+  if(!atEnd){const p=document.createElement("p");p.className="end";p.textContent="Avancez jusqu’à la fin de cette ligne pour voir les suites.";nx.appendChild(p);return;}
+  if(!base.c.length){const p=document.createElement("p");p.className="end";p.textContent="Fin de la variante présentée ici.";nx.appendChild(p);return;}
+  const h=document.createElement("h3");h.textContent=base.c.length>1?"Suites principales":"Suite principale";nx.appendChild(h);
+  const ch=document.createElement("div");ch.className="chips";
+  base.c.forEach(c=>{const b=document.createElement("button");setFam(b,c);
+    b.innerHTML=`<b></b>`;b.querySelector("b").textContent=c.n+" ("+c.e+")";b.append(document.createTextNode(moveText(c).split(" ").slice(0,3).join(" ")+(c.moves.length>2?" …":"")));
+    b.onclick=()=>select(c);ch.appendChild(b);});
+  nx.appendChild(ch);
+}
+
+// explication du coup joué
+function noteAt(k){if(k<0)return "";for(const n of path)if(k<n.ply0+n.moves.length)return (n.x||[])[k-n.ply0]||"";return "";}
+const moveLabel=(k,san)=>(k%2===0?(k/2+1)+".":((k-1)/2+1)+"…")+fig(san);
+function showWhy(box,hd,tx,k,san,note){
+  const show=k>=0&&!!san&&!!note;$(box).hidden=!show;if(!show)return;
+  $(hd).textContent="Pourquoi "+moveLabel(k,san)+" ?";$(tx).textContent=note;}
+
+// arbre
+const open=new Set([TREE.id]);
+function countLeaves(n){return n.c.length?n.c.reduce((a,c)=>a+countLeaves(c),0):1;}
+function buildTree(){
+  const root=$("tree");root.innerHTML="";
+  const make=n=>{
+    const li=document.createElement("li");li.dataset.id=n.id;if(n.c.length&&!open.has(n.id))li.classList.add("closed");
+    const row=document.createElement("div");row.className="row";
+    const t=document.createElement("button");t.className="tog"+(n.c.length?"":" leaf");
+    t.textContent=open.has(n.id)?"▾":"▸";t.setAttribute("aria-label",(open.has(n.id)?"Replier ":"Déplier ")+n.n);
+    t.setAttribute("aria-expanded",open.has(n.id));
+    t.onclick=()=>{open.has(n.id)?open.delete(n.id):open.add(n.id);buildTree();};
+    const b=document.createElement("button");b.className="node";setFam(b,n);b.id="n"+n.id;
+    b.innerHTML='<span class="eco"></span><span class="nm"></span><span class="mv"></span>';
+    b.querySelector(".eco").textContent=n.e;b.querySelector(".nm").textContent=n.n;b.querySelector(".mv").textContent=moveText(n);
+    if(n.c.length&&!open.has(n.id)){const k=document.createElement("span");k.className="count";const L=countLeaves(n);k.textContent=L+" variante"+(L>1?"s":"");b.appendChild(k);}
+    if(path.includes(n))b.classList.add("onpath");
+    if(nodeAt(cursor)===n)b.classList.add("cur");
+    b.onclick=()=>select(n,true);
+    row.append(t,b);li.appendChild(row);
+    if(n.c.length){const ul=document.createElement("ul");n.c.forEach(c=>ul.appendChild(make(c)));li.appendChild(ul);}
+    return li;
+  };
+  root.appendChild(make(TREE));
+}
+
+function select(n,fromTree){
+  path=pathOf(n);cursor=n.ply0+n.moves.length;
+  path.forEach(p=>open.add(p.id));
+  if(TR.on){newLine();}else render();
+  if(!fromTree&&window.matchMedia("(min-width:900px)").matches){const el=$("n"+n.id);if(el)el.scrollIntoView({block:"nearest"});}
+  if(fromTree&&!window.matchMedia("(min-width:900px)").matches)$("board").scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"});
+}
+function step(d){
+  const T=totalPlies();
+  if(d>0){if(cursor<T)cursor++;else{const l=path[path.length-1];if(l.c.length){path.push(l.c[0]);open.add(l.id);cursor++;}}}
+  else if(cursor>0)cursor--;
+  render();
+}
+function render(){
+  drawBoard();if(TR.on)drawTrain();else drawInfo();buildTree();
+  const T=totalPlies(),l=path[path.length-1];
+  $("bStart").disabled=$("bPrev").disabled=cursor===0;
+  $("bNext").disabled=cursor===T&&!l.c.length;$("bEnd").disabled=cursor===T;
+}
+$("bStart").onclick=()=>{cursor=0;render();};
+$("bPrev").onclick=()=>step(-1);
+$("bNext").onclick=()=>step(1);
+$("bEnd").onclick=()=>{cursor=totalPlies();render();};
+$("bFlip").onclick=()=>{flipped=!flipped;drawBoard();};
+$("bOpenAll").onclick=()=>{ALL.forEach(n=>open.add(n.id));buildTree();};
+$("bCloseAll").onclick=()=>{open.clear();open.add(TREE.id);path.forEach(p=>open.add(p.id));buildTree();};
+document.addEventListener("keydown",e=>{
+  if(TR.on||e.target.closest("input,textarea"))return;
+  if(e.key==="ArrowRight"){e.preventDefault();step(1);}
+  else if(e.key==="ArrowLeft"){e.preventDefault();step(-1);}
+});
+// ——— Mode entraînement ———
+const TR={on:false,side:"w",set:[],s:null,last:null,played:[],sel:null,hint:[],bad:null,tries:0,done:false,timer:null,msg:"",cls:"",ok:0,total:0};
+const scopeNode=()=>path[path.length-1];
+function allowedKids(n){const p=pathOf(scopeNode()),k=p.indexOf(n);return k>=0&&k<p.length-1?[p[k+1]]:n.c;}
+function nexts(){const g=new Map();const add=(san,pos)=>{if(!g.has(san))g.set(san,[]);g.get(san).push(pos);};
+  for(const [n,i] of TR.set){if(i<n.moves.length)add(n.moves[i],[n,i+1]);else allowedKids(n).forEach(ch=>add(ch.moves[0],[ch,1]));}
+  return g;}
+function curNode(){const ns=[...new Set(TR.set.map(([n,i])=>i>0?n:n.parent).filter(Boolean))];
+  return ns.length===1?ns[0]:(ns.length?ns[0].parent:null);}
+function say(t,c){TR.msg=t;TR.cls=c||"";}
+function newLine(){
+  clearTimeout(TR.timer);TR.timer=null;
+  Object.assign(TR,{set:[[TREE,0]],s:Engine.start(),last:null,played:[],notes:[],sel:null,hint:[],bad:null,tries:0,done:false});
+  flipped=TR.side==="b";
+  say(TR.side==="w"?"À vous de jouer : retrouvez le coup de la théorie.":"Les Blancs commencent…");
+  render();advance();
+}
+function play(san,set){const r=Engine.move(TR.s,san);
+  Object.assign(TR,{s:r.s,last:r,set,sel:null,hint:[],bad:null,tries:0});TR.played.push(san);TR.notes.push(set[0][0].x[set[0][1]-1]||"");}
+function advance(){
+  const g=nexts();
+  if(!g.size){TR.done=true;const n=curNode();
+    say("Variante terminée : "+(n?n.n:"")+". Lancez une nouvelle ligne pour continuer.","ok");render();return;}
+  if(TR.s.turn!==TR.side){
+    TR.timer=setTimeout(()=>{TR.timer=null;const keys=[...g.keys()];const san=keys[Math.floor(Math.random()*keys.length)];
+      play(san,g.get(san));
+      if(keys.length>1)say("Les "+(TR.side==="w"?"Noirs":"Blancs")+" ont choisi "+fig(san)+" parmi "+keys.length+" suites possibles.");
+      else if(!TR.played[1])say("À vous de jouer : retrouvez le coup de la théorie.");
+      advance();},420);
+  }
+  render();
+}
+function userMove(from,to){
+  const g=nexts();
+  for(const [san,set] of g){let r;try{r=Engine.move(TR.s,san);}catch(e){continue;}
+    const rook=san.startsWith("O-O")?(san==="O-O"?r.from+3:r.from-4):-1;
+    if(r.from===from&&(r.to===to||to===rook)){
+      TR.total++;if(TR.tries===0)TR.ok++;
+      const first=TR.tries===0;play(san,set);say(first?"Bien joué : "+fig(san)+".":"C’est ça : "+fig(san)+".","ok");advance();return true;}
+  }
+  return false;
+}
+function showAnswer(){const g=nexts();say("Coup"+(g.size>1?"s":"")+" de la théorie : "+[...g.keys()].map(fig).join(" ou ")+".","ko");
+  TR.hint=[...g.keys()].map(s=>Engine.move(TR.s,s).from);}
+$("board").addEventListener("click",e=>{
+  if(!TR.on||TR.done||TR.timer||TR.s.turn!==TR.side)return;
+  const sq=e.target.closest(".sq");if(!sq)return;const i=+sq.dataset.i,p=TR.s.b[i];
+  const mine=p&&(p===p.toUpperCase())===(TR.side==="w");
+  TR.bad=null;
+  if(TR.sel!==null&&i!==TR.sel){
+    if(userMove(TR.sel,i))return;
+    if(!mine){TR.tries++;TR.bad=i;TR.sel=null;
+      if(TR.tries>=2)showAnswer();else say("Ce n’est pas le coup de la théorie ici. Réessayez.","ko");
+      render();return;}
+  }
+  TR.sel=(mine&&i!==TR.sel)?i:null;render();
+});
+function drawTrain(){
+  const sc=scopeNode(),L=countLeaves(sc);
+  $("tScope").textContent=sc.n;$("tCount").textContent=L+" ligne"+(L>1?"s":"");
+  const n=curNode();setFam($("train"),n&&n.fam>=0?n:null);
+  $("tName").textContent=n?n.n:"Position initiale";$("tEco").textContent=n?n.e:"";$("tEco").hidden=!n;
+  const mv=$("tMoves");mv.innerHTML="";
+  TR.played.forEach((m,i)=>{if(i%2===0){const s=document.createElement("span");s.className="num";s.textContent=(i/2+1)+".";mv.appendChild(s);}
+    const b=document.createElement("span");b.textContent=fig(m)+" ";if(i===TR.played.length-1)b.style.fontWeight="700";mv.appendChild(b);});
+  if(!TR.played.length)mv.textContent="—";
+  const tw=$("tWhy");tw.innerHTML="";const n0=TR.played.length;
+  for(let k=Math.max(0,n0-2);k<n0;k++){if(!TR.notes[k])continue;
+    const t=document.createElement("h3");t.textContent="Pourquoi "+moveLabel(k,TR.played[k])+" ?";
+    const q=document.createElement("p");q.textContent=TR.notes[k];if(k<n0-1)q.style.marginBottom="8px";tw.append(t,q);}
+  tw.hidden=!tw.childNodes.length;
+  const m=$("tMsg");m.textContent=TR.msg;m.className="msg "+TR.cls;
+  $("tHint").disabled=TR.done||!!TR.timer||TR.s.turn!==TR.side;
+  $("tScore").textContent=TR.total?"Trouvés du premier coup : "+TR.ok+" sur "+TR.total+".":"Choisissez une branche dans l’arbre pour cibler l’entraînement.";
+}
+$("tHint").onclick=()=>{
+  if(TR.hint.length){showAnswer();}
+  else{TR.hint=[...new Set([...nexts().keys()].map(s=>Engine.move(TR.s,s).from))];TR.tries=Math.max(TR.tries,1);
+    say("La pièce à jouer est surlignée.");}
+  render();};
+$("tNew").onclick=()=>newLine();
+function setSide(sd){TR.side=sd;$("sW").setAttribute("aria-pressed",sd==="w");$("sB").setAttribute("aria-pressed",sd==="b");newLine();}
+$("sW").onclick=()=>setSide("w");$("sB").onclick=()=>setSide("b");
+const HINT_EXPLORE=$("hint").textContent;
+function setMode(t){
+  TR.on=t;clearTimeout(TR.timer);TR.timer=null;
+  $("mExplore").setAttribute("aria-pressed",!t);$("mTrain").setAttribute("aria-pressed",t);
+  $("info").hidden=t;$("train").hidden=!t;$("ctrl").classList.toggle("training",t);
+  $("hint").textContent=t?"Choisissez une branche : l’entraînement tirera au hasard une de ses lignes. Jouez en touchant la pièce puis la case d’arrivée.":HINT_EXPLORE;
+  if(t){TR.ok=TR.total=0;newLine();}else{flipped=false;render();}
+}
+$("mExplore").onclick=()=>setMode(false);$("mTrain").onclick=()=>setMode(true);
+
+render();
+</script></body></html>
