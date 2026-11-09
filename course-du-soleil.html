@@ -5,113 +5,170 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Course du soleil</title>
 <style>
-:root{--ink:#f3efe6;--muted:#a9b3c9;--panel:rgba(8,12,28,.8);--line:rgba(255,255,255,.16);--sun:#ffc23d;--night:#9db0ff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--panel:rgba(6,9,22,.84)}}
-:root[data-theme="dark"]{--panel:rgba(6,9,22,.84)}
+:root{--ink:#f3efe6;--muted:#a9b3c9;--panel:rgba(8,12,28,.84);--line:rgba(255,255,255,.15);--chip:rgba(255,255,255,.07);--sun:#ffc23d;--night:#9db0ff;--thumb:#ffc23d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--panel:rgba(6,9,22,.86)}}
+:root[data-theme="dark"]{--panel:rgba(6,9,22,.86)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%;margin:0;background:#0a0f24;color:var(--ink);font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
 #app{position:relative;height:100%;overflow:hidden;display:flex;flex-direction:column}
 header{flex:0 0 auto;padding:8px 12px 2px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-h1{margin:0;font-size:1.1rem;font-weight:600}
+h1{margin:0;font-size:1.1rem;font-weight:600;letter-spacing:.01em}
 header p{margin:2px 0 0;font-size:.82rem;color:#e8ecf6}
 .ht{min-width:0;flex:1 1 auto}
 .tl{display:flex;align-items:baseline;gap:10px;white-space:nowrap;min-width:0}
 .tl .by{font-size:.72rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
-.hr{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 canvas{position:relative;flex:1 1 auto;min-height:0;width:100%;display:block;touch-action:none;cursor:grab}
-canvas[hidden]{display:none}
 #pano{cursor:default}
 #wmap{cursor:crosshair;touch-action:manipulation}
 #app.map2d [data-k]:not([data-k="sea"]):not([data-k="moo"]),#app.map2d #reset{display:none}
-.moonrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 8px;margin:-2px 0 8px;padding-top:6px;border-top:1px solid var(--line)}
-.moonrow dd{font-size:.86rem}
-#mNext{grid-column:1/-1;font-size:.75rem;color:var(--muted);margin:0}
-#app.nomoon .moonrow{display:none}
-.hb{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-#panel{flex:0 0 auto;margin:0 auto 10px;width:calc(100% - 24px);max-width:600px;max-height:38vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px 12px}
-#panel.mini>*:not(.top):not(#tm){display:none}
-#panel.mini .top{margin-bottom:4px}
-.top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;height:2.7em;overflow:hidden;line-height:1.35}
-.sea{color:var(--sun);font-weight:600;font-size:.82rem;white-space:nowrap}
-#phase{font-weight:600}
-#clock{color:var(--muted);font-size:.82rem;text-align:right}
-dl{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 8px;margin:0 0 8px}
-dt{font-size:.7rem;color:var(--muted)}
-dd{margin:0;font-size:.92rem;font-variant-numeric:tabular-nums}
-input[type=range]{width:100%;accent-color:var(--sun);margin:0}
-.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px}
+/* choix de la vue : un seul bloc à quatre cases, puis les deux boutons d’appoint */
+.views{flex:0 0 auto;display:flex;gap:6px;padding:4px 12px 8px;align-items:stretch}
+.seg{flex:1 1 auto;display:flex;gap:2px;padding:3px;background:var(--chip);border:1px solid var(--line);border-radius:12px;max-width:420px}
+.seg button{flex:1 1 0;border:0;border-radius:9px;padding:6px 4px;white-space:nowrap}
+.seg button[aria-pressed="true"]{box-shadow:0 1px 6px rgba(0,0,0,.35)}
+.views>button{border-radius:12px;white-space:nowrap}
+/* panneau de commandes */
+#panel{flex:0 0 auto;margin:0 auto 10px;width:calc(100% - 20px);max-width:600px;max-height:47vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:10px 12px 12px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#panel.mini>*:not(.top):not(.rib){display:none}
+.top{display:flex;align-items:center;gap:12px;min-height:2.6em}
+#clock{font-size:1.9rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.tp{min-width:0;line-height:1.3}
+#phase{font-weight:600;font-size:.92rem}
+.sea{color:var(--sun);font-weight:600;font-size:.8rem;margin-left:8px}
+#date{display:block;color:var(--muted);font-size:.8rem}
+/* ruban de la journée : la couleur du ciel heure par heure, le curseur est le soleil */
+.rib{position:relative;margin:6px 0 2px;padding-bottom:15px}
+#ribbon{position:absolute;left:11px;right:11px;top:6px;height:18px;border-radius:9px;border:1px solid rgba(255,255,255,.28)}
+#tm{position:relative;display:block;width:100%;height:30px;margin:0;padding:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer}
+#tm::-webkit-slider-runnable-track{height:30px;background:transparent;border:0}
+#tm::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:4px;border-radius:50%;background:var(--thumb);border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 0 12px 2px var(--thumb)}
+#tm::-moz-range-track{height:30px;background:transparent;border:0}
+#tm::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--thumb);border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45),0 0 12px 2px var(--thumb)}
+#ticks{position:absolute;left:11px;right:11px;bottom:0;height:13px;font-size:.68rem;color:var(--muted);pointer-events:none}
+#ticks span{position:absolute;top:0;transform:translateX(-50%);white-space:nowrap}
+#ticks span:first-child{transform:none}
+#ticks span:last-child{transform:translateX(-100%)}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
 button{font:inherit;font-size:.8rem;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:999px;padding:6px 11px;cursor:pointer}
 button[aria-pressed="true"]{background:var(--sun);color:#1b1405;border-color:transparent}
 button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #fff;outline-offset:2px}
-select,input[type=date],input[type=text]{font:inherit;font-size:.85rem;color:var(--ink);background:#0d1430;border:1px solid var(--line);border-radius:8px;padding:5px 8px;color-scheme:dark}
-input[type=text]{width:6.5em}
+select,input[type=date]{font:inherit;font-size:.85rem;color:var(--ink);background:#0d1430;border:1px solid var(--line);border-radius:10px;padding:5px 8px;color-scheme:dark}
+.ctl input[type=date]{flex:1 1 8.5em;min-width:0}
+.step{padding:5px 11px;font-size:1rem;line-height:1.1}
+#play::before,#year::before{content:"▶";font-size:.7em;margin-right:6px}
+#play[aria-pressed="true"]::before,#year[aria-pressed="true"]::before{content:"❚❚"}
+/* onglets du panneau */
+.tabs{display:flex;margin:10px 0 9px;border-bottom:1px solid var(--line)}
+.tabs button{flex:1 1 auto;border:0;border-radius:0;padding:7px 4px;color:var(--muted);font-size:.82rem;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--sun)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stats>*{display:block;text-align:left;border:1px solid transparent;border-radius:11px;padding:5px 9px;min-width:0}
+.stats .k{display:block;font-size:.7rem;color:var(--muted);font-weight:400}
+.stats .v{display:block;font-size:.95rem;font-variant-numeric:tabular-nums;color:var(--ink)}
+.stats button{background:var(--chip);border-color:var(--line)}
+.stats.two{grid-template-columns:repeat(2,1fr)}
+#mNext{margin:8px 0 0;font-size:.78rem;color:var(--muted);line-height:1.45}
+#plist{list-style:none;margin:0;padding:0;font-size:.85rem}
+#plist li{display:grid;grid-template-columns:14px 4.6em 4.2em 4.6em 1fr;gap:6px;align-items:baseline;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.07);font-variant-numeric:tabular-nums}
+#plist li:last-child{border-bottom:0}
+#plist i{width:9px;height:9px;border-radius:50%;align-self:center}
+#plist .n{font-weight:600}
+#plist .r{color:var(--muted);font-size:.78rem}
+#plist li.down{opacity:.55}
 details{margin-top:8px;font-size:.82rem}
-summary{cursor:pointer;color:var(--muted)}
-label{display:flex;gap:6px;align-items:center;color:var(--muted)}
-.legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;font-size:.75rem;color:var(--muted)}
+summary{cursor:pointer;color:var(--muted);padding:3px 0}
+details .stats{margin-top:6px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px;font-size:.75rem;color:var(--muted)}
 .legend i{display:inline-block;width:16px;height:5px;border-radius:3px;margin-right:5px;vertical-align:middle}
-.note{margin:8px 0 0;color:var(--muted);font-size:.75rem;line-height:1.4}
+.note{margin:8px 0 0;color:var(--muted);font-size:.75rem;line-height:1.45}
 #err{color:#ffb4a0;font-size:.78rem}
 #err:empty{display:none}
 #toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 76px);transform:translateX(-50%);max-width:min(92vw,460px);background:rgba(5,8,20,.88);color:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.82rem;line-height:1.4;text-align:center;z-index:20;pointer-events:none;transition:opacity .4s}
 #toast:empty{display:none}
-#compass[hidden]{display:none}
 /* écran large : commandes sur le côté, la figure occupe toute la hauteur */
 @media (min-width:900px) and (orientation:landscape){
-  #app{display:grid;grid-template-columns:minmax(0,1fr) 390px;grid-template-rows:auto auto minmax(0,1fr)}
+  #app{display:grid;grid-template-columns:minmax(0,1fr) 400px;grid-template-rows:auto auto minmax(0,1fr)}
   header,.views{grid-column:1/-1}
   #c,#pano,#wmap{grid-column:1;grid-row:3;height:100%}
-  #panel{grid-column:2;grid-row:3;max-height:none;width:auto;max-width:none;margin:0 12px 12px 0;align-self:start;max-height:100%}
-  #panel.mini{align-self:start}
+  #panel{grid-column:2;grid-row:3;width:auto;max-width:none;margin:0 12px 12px 0;align-self:start;max-height:100%}
   #mini{display:none}
 }
-.views{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:6px;padding:4px 12px 6px}
-.views::-webkit-scrollbar{display:none}
-.views button{flex:0 0 auto}
-.views button[data-v][aria-pressed="true"]{background:var(--sun);color:#1b1405;border-color:transparent}
-.views .sm{display:none}
-@media (max-width:480px){.views button{padding:6px 8px;font-size:.76rem}.views{gap:4px;padding-left:8px;padding-right:8px}}
-@media (max-width:375px){.views button{padding:5px 6px;font-size:.72rem}.views{gap:3px;padding-left:6px;padding-right:6px}}
+@media (max-width:480px){.views{gap:4px;padding-left:8px;padding-right:8px}.views button{font-size:.76rem}.views>button{padding:6px 9px}}
+@media (max-width:375px){.views button{font-size:.72rem}.views>button{padding:5px 7px}#clock{font-size:1.6rem}}
 </style>
 </head>
 <body>
 <div id="app">
 <header><div class="ht"><div class="tl"><h1>Course du soleil</h1><span class="by">Auteur : Lionel GERVAIS</span></div><p id="where"></p></div></header>
-<nav class="views" aria-label="Choix de la vue"><button data-v="map">Carte</button><button data-v="sky">Ciel 3D</button><button data-v="pano2">Ciel 2D</button><button data-v="earth">Terre</button><button id="compass" aria-pressed="false" hidden>Boussole</button><button id="mini" aria-expanded="true" aria-pressed="false" aria-controls="panel">Zoom</button></nav>
+<nav class="views" aria-label="Choix de la vue"><div class="seg"><button data-v="map">Carte</button><button data-v="sky">Ciel 3D</button><button data-v="pano2">Ciel 2D</button><button data-v="earth">Terre</button></div><button id="compass" aria-pressed="false" hidden>Boussole</button><button id="mini" aria-expanded="true" aria-pressed="false" aria-controls="panel">Zoom</button></nav>
 <span hidden><button id="wm"></button><button id="earth"></button><button id="view"></button></span>
 <canvas id="c"></canvas>
 <div id="toast" role="status" aria-live="polite"></div>
 <canvas id="pano" hidden aria-label="Ciel 2D : le ciel vu depuis le sol, déroulé à plat"></canvas>
 <canvas id="wmap" hidden role="img" aria-label="Carte du monde montrant les zones de jour et de nuit"></canvas>
 <section id="panel">
-<div class="top"><span id="phase"></span><span id="clock"></span></div>
-<dl>
-<div><dt>Hauteur</dt><dd id="alt"></dd></div>
-<div><dt>Azimut</dt><dd id="azi"></dd></div>
-<div><dt>Durée du jour</dt><dd id="len"></dd></div>
-<div><dt>Lever</dt><dd id="rise"></dd></div>
-<div><dt>Midi solaire</dt><dd id="noon"></dd></div>
-<div><dt>Coucher</dt><dd id="set"></dd></div>
-</dl>
-<dl class="moonrow" aria-label="La Lune">
-<div><dt>Lune</dt><dd id="mPhase"></dd></div>
-<div><dt>Lever de la Lune</dt><dd id="mRise"></dd></div>
-<div><dt>Coucher de la Lune</dt><dd id="mSet"></dd></div>
-<p id="mNext"></p>
-</dl>
-<input type="range" id="tm" min="0" max="1439" step="1" aria-label="Heure de la journée">
-<div class="row">
+<div class="top"><span id="clock"></span><div class="tp"><span id="phase"></span><span class="sea" id="sea"></span><span id="date"></span></div></div>
+<div class="rib"><div id="ribbon"></div><input type="range" id="tm" min="0" max="1439" step="1" aria-label="Heure de la journée"><div id="ticks" aria-hidden="true"></div></div>
+<div class="row ctl">
+<button id="prev" class="step" aria-label="Jour précédent">‹</button>
 <input type="date" id="dt" aria-label="Date">
+<button id="next" class="step" aria-label="Jour suivant">›</button>
+<button id="now">Maintenant</button>
 <button id="play">Journée</button>
 <button id="year">Année</button>
-<button id="now">Maintenant</button>
-<button id="rs">Aller au lever</button>
 <button id="season">Aller au 21 déc.</button>
-<button id="reset">Vue initiale</button>
 </div>
-<div class="row" role="group" aria-label="Affichage">
+<div class="tabs" role="tablist" aria-label="Rubriques">
+<button role="tab" data-t="sun" aria-selected="true">Soleil</button>
+<button role="tab" data-t="moon" aria-selected="false">Lune</button>
+<button role="tab" data-t="pla" aria-selected="false">Planètes</button>
+<button role="tab" data-t="lay" aria-selected="false">Affichage</button>
+<button role="tab" data-t="loc" aria-selected="false">Lieu</button>
+</div>
+<div class="tab" data-p="sun">
+<div class="stats">
+<button data-go="rise" title="Placer le curseur au lever"><span class="k">Lever</span><span class="v" id="rise"></span></button>
+<button data-go="noon" title="Placer le curseur au midi solaire"><span class="k">Midi solaire</span><span class="v" id="noon"></span></button>
+<button data-go="set" title="Placer le curseur au coucher"><span class="k">Coucher</span><span class="v" id="set"></span></button>
+<div><span class="k">Hauteur</span><span class="v" id="alt"></span></div>
+<div><span class="k">Azimut</span><span class="v" id="azi"></span></div>
+<div><span class="k">Durée du jour</span><span class="v" id="len"></span></div>
+</div>
+<details>
+<summary>Crépuscules et heure dorée</summary>
+<div class="stats two">
+<div><span class="k">Aube civile</span><span class="v" id="twA"></span></div>
+<div><span class="k">Fin du crépuscule civil</span><span class="v" id="twB"></span></div>
+<div><span class="k">Fin de la nuit noire</span><span class="v" id="twC"></span></div>
+<div><span class="k">Début de la nuit noire</span><span class="v" id="twD"></span></div>
+<div><span class="k">Heure dorée du matin</span><span class="v" id="twE"></span></div>
+<div><span class="k">Heure dorée du soir</span><span class="v" id="twF"></span></div>
+</div>
+<p class="note">L’aube civile est le début du crépuscule civil du matin. Crépuscule civil : le soleil est entre l’horizon et 6° dessous, on y voit encore sans éclairage. Nuit noire : le soleil est à plus de 18° sous l’horizon (fin du crépuscule astronomique) ; un tiret signifie qu’elle n’a pas lieu ce jour-là. L’heure dorée n’a pas de définition officielle : c’est ici la période où le soleil est levé mais à moins de 6° de hauteur, lumière rasante et chaude appréciée des photographes.</p>
+</details>
+</div>
+<div class="tab" data-p="moon" hidden>
+<div class="stats">
+<div><span class="k">Phase</span><span class="v" id="mPhase"></span></div>
+<div><span class="k">Lever de la Lune</span><span class="v" id="mRise"></span></div>
+<div><span class="k">Coucher de la Lune</span><span class="v" id="mSet"></span></div>
+<div><span class="k">Hauteur</span><span class="v" id="mAlt"></span></div>
+<div><span class="k">Azimut</span><span class="v" id="mAzi"></span></div>
+<div><span class="k">Distance</span><span class="v" id="mDist"></span></div>
+</div>
+<p id="mNext"></p>
+</div>
+<div class="tab" data-p="pla" hidden>
+<ul id="plist"></ul>
+<p class="note">Les cinq planètes visibles à l’œil nu, à l’instant affiché. Positions calculées avec les éléments orbitaux moyens du JPL : précision d’environ 0,1°, largement suffisante pour les repérer dans le ciel.</p>
+</div>
+<div class="tab" data-p="lay" hidden>
+<div class="row" role="group" aria-label="Affichage" style="margin-top:0">
 <button data-k="moo" aria-pressed="true">Lune</button>
+<button data-k="pla" aria-pressed="true">Planètes</button>
+<button data-k="sta" aria-pressed="true">Étoiles</button>
 <button data-k="sea" aria-pressed="false">Saisons</button>
 <button data-k="axe" aria-pressed="false">Axe du monde</button>
 <button data-k="lab" aria-pressed="true" hidden>Légende</button>
@@ -120,10 +177,9 @@ label{display:flex;gap:6px;align-items:center;color:var(--muted)}
 <button data-k="ecl" aria-pressed="false">Écliptique</button>
 <button data-k="nxt" aria-pressed="false" hidden>Courbe sur 2 jours</button>
 </div>
-<details>
-<summary>Lieu et légende</summary>
-<div class="row"><select id="place" aria-label="Lieu"></select><button id="geo">Me localiser</button></div>
-<p class="note" id="err" role="status"></p>
+<div class="row">
+<button id="reset">Vue initiale</button>
+</div>
 <div class="legend">
 <span><i style="background:#ffc23d"></i>Jour</span>
 <span><i style="background:#9db0ff"></i>Nuit</span>
@@ -134,12 +190,22 @@ label{display:flex;gap:6px;align-items:center;color:var(--muted)}
 <span><i style="background:#b6f09c"></i>Analemme</span>
 <span><i style="background:#ff5fd2"></i>Écliptique</span>
 <span><i style="background:#d6deec"></i>Lune</span>
+<span><i style="background:#8fa6e8"></i>Constellations</span>
 </div>
+</div>
+<div class="tab" data-p="loc" hidden>
+<div class="row" style="margin-top:0"><select id="place" aria-label="Lieu"></select><button id="geo">Me localiser</button></div>
+<p class="note" id="err" role="status"></p>
+<details>
+<summary>Explications</summary>
 <p class="note">Lever et coucher suivent la définition officielle (bord supérieur du soleil, réfraction comprise). L’analemme montre où se trouve le soleil à l’heure affichée, en heure d’hiver, sur toute l’année (un point clair par premier du mois) : sa forme en 8 vient de l’inclinaison de l’axe terrestre et de l’orbite elliptique. Pour un point choisi en touchant la carte, les heures sont données en heure solaire approchée ; avec « Ma position », elles suivent le fuseau horaire de l’appareil.</p>
+<p class="note">Ruban de la journée : sous l’heure, la bande colorée montre la couleur du ciel du matin au soir (nuit, crépuscules, jour) ; le curseur rond est le soleil. Touchez Lever, Midi solaire ou Coucher pour y placer le curseur.</p>
 <p class="note">Lune : sa trajectoire est tracée en gris argenté (pointillés sous l’horizon) sur environ 24 h 50, le temps qu’elle revienne au même endroit du ciel ; les deux bouts ne se rejoignent pas exactement, car la Lune monte un peu plus haut ou un peu moins haut chaque jour et son disque montre la phase réelle, côté éclairé tourné vers le Soleil. Positions calculées avec une théorie simplifiée, parallaxe comprise : quelques minutes d’écart possibles sur le lever et le coucher. Dans la vue Terre, l’orbite de la Lune n’est pas à l’échelle : elle montre pourquoi la Lune est pleine à l’opposé du Soleil et nouvelle de son côté.</p>
+<p class="note">Étoiles et planètes : les 726 étoiles les plus brillantes (jusqu’à la magnitude 4,3, catalogue Hipparcos) et les principales constellations tournent avec le ciel. Elles sont bien là en plein jour, mais noyées dans la lumière du Soleil : l’appli les montre alors très pâles. Dans le Ciel 3D vu de l’extérieur, la voûte est une sphère transparente : les constellations situées du côté de l’observateur apparaissent inversées, comme sur un globe céleste ; elles ont leur aspect réel dans le Ciel 2D et avec la Boussole.</p>
 <p class="note">Ciel 2D : le ciel déroulé à plat, face au sud. Boussole (sur téléphone ou tablette, depuis une adresse https) : vous êtes au centre du ciel, à hauteur des yeux, et la vue 3D suit l’orientation de l’appareil ; tenez-le devant vous pour voir la trajectoire du soleil dans la vraie direction du ciel. Pincez pour zoomer. Si le nord semble décalé, décrivez un 8 avec le téléphone pour calibrer sa boussole, et éloignez-vous des objets métalliques.</p>
 <p class="note">Carte : la partie claire est éclairée par le Soleil, les bandes de plus en plus sombres sont les crépuscules civil (soleil jusqu’à 6° sous l’horizon), nautique (12°) et astronomique (18°), puis la nuit. Le point jaune marque l’endroit où le Soleil est au zénith ; la bande de droite donne la durée du jour pour chaque latitude, alignée avec la carte. Toucher la carte choisit ce lieu comme point d’observation.</p>
 </details>
+</div>
 </section>
 </div>
 <script>
@@ -216,6 +282,48 @@ function nextPhase(t0,target){   // prochain instant où l’élongation vaut ta
   for(let i=0;i<130;i++){const b=a+6*3600000,fb=f(b);if(fa<0&&fb>=0&&fb-fa<90){let lo=a,hi=b;for(let j=0;j<30;j++){const mi=(lo+hi)/2;if(f(mi)<0)lo=mi;else hi=mi;}return (lo+hi)/2;}a=b;fa=fb;}
   return null;
 }
+// Étoiles (magnitude ≤ 4,3) et constellations : catalogue Hipparcos, d’après les données de d3-celestial (licence BSD) ; coordonnées J2000 en dixièmes de degré
+const STARS=[1013,-167,-14,0,960,-527,-6,0,2139,192,0,2,2199,-608,0,1,2792,388,0,0,792,460,1,1,786,-82,2,0,1148,52,4,1,244,-572,4,0,888,74,4,2,2110,-604,6,0,2977,89,8,1,1866,-631,8,0,690,165,9,2,2013,-112,10,0,2474,-264,11,2,1163,280,12,2,3444,-296,12,0,1919,-597,12,0,3104,453,12,0,2199,-608,14,2,1521,120,14,0,1047,-290,15,0,1136,319,16,0,1878,-571,16,2,2634,-371,16,0,813,63,16,0,816,286,16,0,1383,-697,17,0,841,-12,17,0,3321,-470,17,0,852,-19,17,0,1224,-473,18,0,1935,560,18,0,511,499,18,1,2760,-344,18,0,1659,618,18,2,1071,-264,18,1,2069,493,18,0,1256,-595,19,2,2643,-430,19,1,899,449,19,0,2522,-690,19,2,994,164,19,0,1312,-547,19,0,3064,-567,19,0,380,893,20,1,957,-180,20,0,1419,-87,20,2,318,235,20,2,1550,198,20,2,109,-180,20,2,2838,-263,20,0,2117,-364,21,2,21,291,21,0,174,356,21,2,869,-97,21,0,2227,742,21,2,3407,-469,21,2,2637,126,21,0,470,410,21,0,310,423,21,2,1773,146,21,0,142,607,22,0,1904,-490,22,0,1209,-400,22,0,1393,-593,22,0,2337,267,22,0,1370,-434,22,2,2010,549,22,0,3056,403,22,1,101,565,22,2,2692,515,22,2,830,-3,22,0,23,591,23,1,2050,-535,23,0,2401,-226,23,0,2525,-343,23,2,2205,-474,23,0,2189,-422,23,0,1655,564,23,0,2212,271,24,2,3260,99,24,2,2656,-390,24,0,66,-423,24,2,1785,537,24,0,2576,-157,24,0,3459,281,24,2,1110,-293,24,0,3196,626,24,1,1405,-550,25,0,3116,340,25,2,3462,152,25,0,456,41,25,2,2493,-106,25,0,2089,-473,26,0,1685,205,26,0,2414,-198,26,0,832,-178,26,1,1821,-507,26,0,1840,-175,26,0,2857,-299,26,0,2293,-94,26,0,2361,64,26,2,287,208,26,0,849,-341,26,0,899,372,26,0,1886,-234,26,1,215,602,27,0,2087,184,27,1,2246,-431,27,0,742,332,27,2,1617,-494,27,2,1893,-691,27,0,2627,-373,27,0,1093,-371,27,2,2752,-298,27,2,2966,106,27,2,2436,-37,27,2,2460,615,27,2,1607,-644,27,0,1904,-14,27,1,839,-59,28,0,2001,-367,28,0,2227,-160,28,0,2659,46,28,2,770,-51,28,0,2476,215,28,2,2587,144,28,2,1838,-587,28,0,2626,523,28,2,2338,-412,28,0,821,-208,28,1,2503,316,28,1,64,-773,28,1,2490,-282,28,0,2770,-254,28,2,33,152,28,0,1219,-243,28,1,2388,-634,28,1,585,319,28,1,2613,-555,28,2,2630,-499,28,0,569,241,28,0,1955,110,28,2,3268,-161,28,0,297,-616,29,1,2962,451,29,0,957,225,29,2,2297,-687,29,0,3346,-603,29,2,446,-403,29,0,2874,-210,29,1,1118,83,29,0,1940,383,29,0,2397,-261,29,0,595,400,29,0,2453,-256,29,1,3229,-56,29,1,462,535,29,1,1468,-651,29,1,3408,302,29,1,1025,-506,29,2,1875,-165,29,0,3314,-3,30,2,595,-135,30,2,844,211,30,0,1465,238,30,1,2715,-304,30,2,1997,-232,30,2,2669,-401,30,1,2864,139,30,0,324,350,30,0,1674,445,30,2,2302,718,30,0,2530,-380,30,0,3285,-374,30,0,557,478,30,0,951,-301,30,0,1058,-238,30,0,1825,-226,30,2,755,438,30,1,1916,-681,30,0,2180,383,30,0,2927,280,30,2,3053,-148,30,1,1010,251,31,2,1556,415,31,2,2881,677,31,2,2744,-368,31,2,1338,59,31,2,1624,-162,31,2,1739,-630,31,0,3094,-473,31,2,877,-358,31,2,1348,480,31,1,2547,-560,31,2,2588,248,31,0,2248,-421,31,0,1403,344,31,2,1428,-570,32,2,2588,368,32,2,994,-432,32,0,1432,517,32,1,2572,657,32,0,2814,-270,32,0,766,412,32,0,2206,-650,32,1,725,70,32,1,764,-224,32,2,2544,94,32,2,2675,-370,32,2,3182,302,32,2,3548,776,32,2,2303,-406,32,0,2446,-47,32,2,2753,-29,32,2,3222,706,32,0,1020,-619,32,1,3028,-8,32,0,1123,-433,32,2,2116,-267,32,2,2260,-253,32,2,2847,327,32,0,568,-742,33,2,98,309,33,2,2605,-250,33,0,3437,-158,33,0,782,-162,33,0,1534,-700,33,0,2312,590,33,2,685,-550,33,0,1580,-617,33,0,937,225,33,2,2613,-564,33,0,165,-467,33,1,463,388,33,2,1839,570,33,0,2580,-432,33,1,2698,-98,33,2,2867,-277,33,2,636,-625,33,2,1686,154,33,0,1173,-249,33,2,286,637,34,0,811,-24,34,0,1013,129,34,1,1276,607,34,1,2914,31,34,1,2307,-447,34,0,1317,64,34,1,2037,-6,34,0,838,99,34,0,1543,-613,34,2,1939,34,34,2,3327,582,34,2,672,159,34,0,221,-433,34,2,602,125,34,0,2074,-417,34,0,2281,-521,34,2,3113,618,34,2,3404,108,34,0,283,296,34,1,2400,-384,34,0,2666,277,34,1,3112,-662,34,0,1377,-590,34,0,1542,234,34,1,2866,-49,34,0,1543,429,34,0,123,578,35,1,171,-102,35,2,1192,-530,35,0,2289,333,35,2,408,32,35,0,2074,-425,35,0,1518,168,35,0,2507,389,35,2,260,-159,35,1,1054,-279,35,2,1696,331,35,2,2255,404,35,2,2767,-460,35,0,3421,-513,35,0,1025,-325,35,0,1100,220,35,1,3424,662,35,2,2997,195,35,2,3425,246,35,2,558,-98,35,2,1453,99,35,1,1492,-546,35,0,2825,334,35,0,2844,-211,35,2,3325,62,35,0,672,192,35,2,1241,92,35,2,1733,-319,35,2,2374,-34,35,0,2644,-154,35,1,645,-338,36,0,867,-148,36,0,2149,-461,36,0,2753,727,36,1,3022,-662,36,1,49,-88,36,2,341,-515,36,0,1698,-148,36,2,2531,-380,36,0,1161,244,36,2,1359,472,36,0,2180,304,36,2,2305,-363,36,2,1095,165,36,0,3045,-125,36,1,245,486,36,2,794,-68,36,0,861,-224,36,1,1777,18,36,1,1853,-604,36,2,210,-82,36,2,1032,340,36,0,1301,-529,36,0,1427,-405,36,1,2343,-281,36,2,2628,-607,36,0,425,273,36,0,512,90,36,1,1526,-124,36,2,1956,-715,36,2,2664,-647,36,2,229,153,36,2,573,241,36,0,1163,-380,36,2,2536,-424,36,2,3455,423,36,0,1764,-667,36,0,3094,146,36,1,649,156,36,2,1429,631,36,1,2365,154,36,0,2717,-501,36,0,3372,0,36,1,2320,291,37,1,2347,-298,37,0,2111,644,37,0,3137,-585,37,2,728,56,37,0,1309,-332,37,0,2968,185,37,2,3474,-212,37,2,92,539,37,0,290,-516,37,1,756,411,37,2,1463,-625,37,2,1765,478,37,2,3250,-167,37,1,499,-218,37,2,2694,292,37,2,3493,33,37,2,736,24,37,0,891,-142,37,1,1181,-406,37,2,2377,45,37,0,2718,96,37,0,2988,64,37,1,532,-95,37,1,562,241,37,0,899,543,37,2,3162,439,37,2,518,97,37,0,2216,19,37,0,2684,569,37,2,3254,-774,37,2,3432,-76,37,2,279,-103,37,2,2455,192,37,1,3187,380,37,1,1360,-471,38,2,2670,27,38,0,834,-625,38,1,878,-209,38,2,972,-70,38,0,2862,-217,38,2,2924,517,38,0,3378,503,38,0,427,559,38,2,563,426,38,1,657,175,38,2,847,-26,38,0,1264,-661,38,2,1302,-466,38,1,2524,-590,38,2,3099,159,38,0,3217,-224,38,2,3318,253,38,1,1072,-705,38,2,1114,278,38,2,1477,590,38,1,1634,-589,38,2,2203,137,38,0,3119,-95,38,0,474,449,38,2,1633,342,38,2,1695,315,38,1,480,-290,38,1,1147,-268,38,0,2337,105,38,1,2893,534,38,2,3034,467,38,2,689,-306,38,2,1570,-587,38,1,2357,263,38,0,3544,465,38,2,305,28,38,0,1397,368,38,0,1729,693,38,2,2477,20,38,0,2649,460,38,0,1565,-168,38,2,2096,-421,38,0,2220,-790,38,2,560,-648,38,2,561,323,38,0,671,160,38,2,1338,-606,38,0,1582,93,38,0,1593,-482,38,1,1881,-721,38,0,2719,288,38,0,2734,-211,38,0,2970,703,38,1,635,-423,38,2,868,-511,38,0,955,-334,38,1,1537,-421,38,0,1884,698,38,0,1894,-485,38,0,2391,157,38,1,2759,218,38,2,2788,-82,38,2,142,385,39,0,695,-143,39,2,828,-355,39,2,2439,-637,39,2,2484,-789,39,2,2691,373,39,2,3354,-14,39,0,565,244,39,0,1315,-460,39,0,2097,-448,39,0,2208,-57,39,1,2392,-292,39,0,2981,10,39,1,24,-457,39,2,284,193,39,0,1482,260,39,2,2280,-487,39,0,3476,-452,39,2,441,-89,39,2,1035,-242,39,2,1386,23,39,0,1850,-7,39,0,2991,351,39,2,1450,-11,39,2,1703,-545,39,0,2028,-394,39,2,608,60,39,0,1264,-39,39,0,1870,-502,39,0,2263,-471,39,0,2339,-148,39,2,2449,463,39,0,2551,309,39,0,2904,-178,39,1,3190,52,39,1,66,-437,39,0,228,-491,39,2,436,528,39,1,691,-34,39,0,1155,-726,39,2,1671,-590,39,2,2417,-207,39,0,2702,29,39,0,171,-552,39,0,1153,-96,39,2,1160,-290,39,0,1312,182,39,2,3143,412,39,0,309,724,40,0,992,-193,40,2,622,477,40,0,898,-428,40,2,1352,418,40,1,1378,-623,40,0,2907,-445,40,0,2910,-406,40,0,3039,477,40,2,3507,-201,40,2,660,-340,40,2,879,391,40,2,1092,-680,40,1,1300,-353,40,2,1829,-524,40,0,2377,-336,40,0,3001,-729,40,0,3373,-435,40,2,3416,236,40,2,597,358,40,0,3235,456,40,1,300,-211,40,2,937,-63,40,2,1561,-740,40,1,2013,550,40,0,3494,-582,40,1,1356,-664,40,0,1710,105,40,1,2430,-195,40,0,259,507,40,0,714,-33,40,0,1060,206,40,1,1087,-268,40,0,2205,-378,40,0,2405,586,40,1,2450,-502,40,2,2808,-714,40,2,3073,304,40,1,1326,-277,40,2,1821,-247,40,1,2849,151,40,2,2854,-57,40,2,343,338,40,0,759,604,40,2,1317,288,40,2,1936,-572,40,0,2714,25,40,1,3083,113,40,0,3598,69,40,1,630,-68,40,1,1765,65,40,2,2163,519,40,1,3388,-1,40,0,473,496,40,1,1246,-769,40,1,1311,-426,40,1,1703,60,40,0,2074,158,40,2,2151,-379,40,0,2195,-494,40,0,3424,-136,40,2,741,135,41,2,1140,269,41,2,1712,-177,41,1,1844,-680,41,2,1846,-640,41,0,2209,-352,41,2,2549,-532,41,2,2140,-60,41,1,2272,-453,41,0,2294,-588,41,0,3373,584,41,1,118,243,41,2,354,-687,41,0,399,3,41,0,456,-236,41,0,1035,-120,41,2,1436,-592,41,0,1649,-183,41,2,2838,439,41,2,3165,-172,41,0,3205,198,41,2,842,93,41,2,2372,181,41,2,242,414,41,1,410,492,41,1,1173,-464,41,0,2772,-491,41,2,2875,-393,41,2,402,-399,41,2,1059,-156,41,0,1294,-430,41,0,1479,-148,41,2,1589,-786,41,2,1766,-612,41,1,2342,-663,41,2,2874,-379,41,0,3452,-528,41,2,399,-683,41,0,637,484,41,2,906,96,41,0,1813,87,41,2,2988,-419,41,2,3130,-269,41,2,3374,-437,41,2,810,-78,41,2,972,202,41,0,2385,-167,41,2,3115,-253,41,1,3415,-814,41,1,3550,56,41,1,527,129,41,2,566,239,41,0,1294,57,41,0,1817,-646,41,1,2332,314,41,0,2394,269,41,2,3262,256,41,1,3340,377,41,2,1080,-5,42,0,2609,371,42,0,3551,443,42,0,910,233,42,1,1123,318,42,1,2411,-114,42,1,2616,-242,42,1,82,629,42,0,574,-362,42,2,3342,-78,42,2,2132,-103,42,2,2141,461,42,0,2491,-353,42,2,3338,570,42,1,3402,-270,42,0,2074,-345,42,2,2814,205,42,1,827,59,42,0,1192,-229,42,1,1570,367,42,2,2485,424,42,0,3417,122,42,1,3440,-325,42,2,523,599,42,1,663,223,42,0,2515,820,42,1,3074,630,42,0,3216,-654,42,1,426,383,42,1,567,-232,42,1,1183,-481,42,0,2416,-368,42,0,2468,-185,42,1,2752,713,42,0,2818,-47,42,2,2831,-622,42,0,2836,369,42,2,3114,307,42,2,3194,394,42,0,3486,-60,42,2,50,-649,42,1,1158,289,42,2,1980,279,42,1,2064,-330,42,1,2104,15,42,0,2422,449,42,0,2508,-775,42,2,2866,-371,42,1,3259,588,42,2,3267,493,42,0,172,863,42,2,367,-477,42,0,410,-139,42,0,1846,-793,42,0,1884,414,42,1,2478,-347,42,0,2654,-129,42,0,3490,-91,42,2,189,-689,42,1,616,504,42,0,689,102,42,0,692,413,42,2,773,-88,42,0,1257,432,42,2,1934,-402,42,1,2169,757,42,2,3264,611,42,1,174,472,43,0,263,92,43,2,500,-431,43,1,534,-216,43,0,640,-515,43,1,735,663,43,0,1346,119,43,0,2641,-386,43,2,2704,216,43,1,3309,646,43,1,157,79,43,2,412,101,43,1,639,89,43,0,695,125,43,0,706,230,43,0,1967,-499,43,0,2296,-479,43,0,2908,-448,43,1,3117,161,43,2,3520,64,43,2,666,228,43,1,1443,813,43,2,1568,-311,43,2,2618,-299,43,1,3033,566,43,0,3206,-168,43,1,3325,332,43,1,3467,-435,43,1,542,4,43,1,799,-132,43,0,1598,-556,43,2,1782,-339,43,0,2360,778,43,0,2478,-166,43,2,3316,-139,43,0,3379,-323,43,0,3545,433,43,0,147,-294,43,0,370,85,43,0,563,245,43,0,571,-376,43,0,664,179,43,0,900,459,43,2,1308,34,43,0,1639,247,43,0,1742,-8,43,2,1774,-638,43,0,1880,-162,43,1,2151,-564,43,0,3044,-125,43,2];
+const STAR_NAMES=[["Étoile Polaire",38.0,89.3],["Sirius",101.3,-16.7],["Canopus",96.0,-52.7],["Arcturus",213.9,19.2],["Alpha du Centaure",219.9,-60.8],["Véga",279.2,38.8],["Capella",79.2,46.0],["Rigel",78.6,-8.2],["Procyon",114.8,5.2],["Achernar",24.4,-57.2],["Bételgeuse",88.8,7.4],["Altaïr",297.7,8.9],["Acrux",186.6,-63.1],["Aldébaran",69.0,16.5],["Spica",201.3,-11.2],["Antarès",247.4,-26.4],["Pollux",116.3,28.0],["Fomalhaut",344.4,-29.6],["Deneb",310.4,45.3],["Régulus",152.1,12.0],["Castor",113.6,31.9]];
+const CONST_LINES=[[310,423,174,356,98,309,21,291],[143,234,118,243,96,293,98,309,92,337,3545,433,3455,423],[3545,433,3551,443,3544,465],[174,356,142,385,125,411,174,472,245,486],[3551,443,3565,464],[1423,-360,1568,-311,1642,-371],[2220,-790,2451,-787,2508,-775,2484,-789],[3119,-95,3132,-90,3229,-56,3314,-3,3354,-14,3372,0,3388,-1,3432,-76,3495,-92,3474,-212],[3229,-56,3316,-139],[3314,-3,3342,-78],[3372,0,3363,14],[3507,-201,3495,-92,3554,-178],[2966,106,2977,89,2988,64,3028,-8,2981,10,2914,31,2864,139,2977,89,2914,31,2866,-49],[2613,-564,2628,-607,2524,-590,2547,-560,2549,-532,2630,-499,2613,-555],[425,273,318,235,287,208,284,193],[899,449,792,460,766,412,742,332,816,286,899,372,899,449,899,543,792,460,755,438,756,411],[2068,175,2087,184,2139,192,2180,304,2180,383,2255,404,2289,333,2212,271,2139,192,2203,137],[2180,383,2141,461,2134,518,2163,519,2141,461],[677,-450,701,-419,705,-371,761,-355],[743,538,759,604,735,663,576,713,574,655,523,599],[735,663,947,693,1050,770],[1346,119,1312,182,1308,215,1317,288],[1312,182,1241,92],[1940,383,1884,414],[957,-180,1013,-167,1058,-238,1071,-264,1054,-279,1047,-290,951,-301],[1110,-293,1071,-264],[1013,-167,1040,-171,1059,-156,1035,-120,1040,-171],[1148,52,1118,83],[3044,-125,3053,-148,3072,-178,3115,-253,3130,-269,3217,-224,3268,-161,3250,-167,3206,-168,3165,-172,3044,-125],[994,-432,960,-527,1383,-697,1534,-700,1607,-644,1580,-617,1543,-613,1393,-593,1256,-595,1192,-530,1224,-473,1312,-547,1393,-593],[1607,-644,1666,-624,1671,-619,1682,-603,1671,-590,1634,-589,1580,-617],[286,637,215,602,142,607,101,565,23,591],[1703,-545,1821,-507,1870,-502,1904,-490,2050,-535,2089,-473,2074,-425,2074,-417,2117,-364,2189,-422,2248,-421],[2074,-417,2001,-367],[2199,-608,2050,-535,2110,-604],[1870,-502,1829,-524,1729,-594],[3074,630,3113,618,3196,626,3259,588,3338,570,3327,582,3373,584,3424,662,3548,776,3222,706,3196,626],[3222,706,3424,662],[408,32,390,56,370,85,412,101,449,89,456,41,408,32,399,3,348,-30,279,-103,260,-159,109,-180,49,-88,171,-102,210,-82,279,-103],[1246,-769,1589,-786,1613,-805,1846,-793,1799,-782,1589,-786],[2294,-588,2206,-650,2308,-593],[955,-334,877,-358,849,-341,828,-355],[877,-358,898,-428],[1975,175,1980,279,1867,283],[2847,-371,2866,-371,2874,-379,2875,-393,2871,-405,2858,-421,2824,-434,2784,-423],[2332,314,2320,291,2337,267,2357,263,2374,261,2394,269,2404,299],[1821,-247,1825,-226,1840,-175,1875,-165,1886,-234,1825,-226],[1742,-98,1712,-109,1698,-148,1649,-183,1679,-228,1708,-188,1712,-177,1762,-184,1790,-172],[1698,-148,1712,-177],[1919,-597,1838,-587],[1866,-631,1878,-571],[3182,302,3116,340,3056,403,2962,451,2924,517,2893,534],[3104,453,3056,403,2991,351,2927,280],[3083,113,3094,146,3099,159,3117,161,3109,151,3094,146],[640,-515,685,-550,834,-625,862,-657,885,-631,834,-625,764,-575,685,-550],[2684,569,2692,515,2626,523,2631,552,2684,569,2881,677,2752,713,2572,657,2460,615,2405,586,2312,590,2111,644,1884,698,1729,693],[2752,713,2753,727],[2881,677,2970,703],[3190,52,3186,100,3176,101],[770,-51,714,-33,691,-34,630,-68,595,-135,565,-121,558,-98,532,-95,441,-89,410,-139,413,-186,456,-236,499,-218,534,-216,567,-232,689,-306,660,-340,645,-338,574,-362,543,-403,500,-431,446,-403,402,-399,367,-477,341,-515,290,-516,244,-572],[480,-290,423,-324,311,-293],[937,225,957,225,1010,251,1078,302,1136,319,1163,280,1140,269,1100,220,1060,206,994,164,1013,129],[1100,220,1095,165],[3452,-528,3421,-513,3407,-469,3374,-437,3321,-470,3407,-469],[3373,-435,3339,-413,3315,-395,3285,-374],[2455,192,2476,215,2503,316,2507,389,2485,424,2449,463,2422,449,2382,425],[2503,316,2551,309],[2507,389,2588,368],[2691,373,2609,371,2588,368,2551,309,2588,248,2666,277,2694,292,2719,288],[2587,144,2476,215],[635,-423,406,-508,394,-525,402,-545,459,-597,447,-641],[1317,64,1321,58,1308,34,1297,33,1294,57,1317,64,1338,59,1386,23,1450,-11,1419,-87,1479,-148,1526,-124,1565,-168,1624,-162,1733,-319,1782,-339,1997,-232,2116,-267,2226,-280],[64,-773,568,-742,399,-683,354,-687,287,-676,297,-616],[3094,-473,3110,-519,3137,-585,3295,-550,3200,-534,3094,-473],[3359,522,3378,503,3374,477,3353,465,3376,431,3401,443,3374,477,3361,495,3359,522],[3376,431,3335,397,3340,377],[1521,120,1518,168,1550,198,1685,205,1773,146,1686,154,1521,120],[1550,198,1542,234,1482,260,1465,238],[1519,352,1565,338,1633,342,1570,367,1519,352,1436,364],[915,-149,891,-142,867,-148,832,-178,782,-162,764,-224,821,-208,861,-224,878,-209],[783,-129,782,-162,799,-132],[2260,-253,2227,-160,2293,-94,2339,-148,2343,-281,2347,-298],[2227,-160,2339,-148],[2377,-336,2349,-344,2305,-363,2303,-406,2246,-431,2205,-474,2281,-521,2296,-479,2307,-447,2338,-412,2400,-384,2416,-368],[2303,-406,2338,-412],[949,590,1043,584,1117,492,1257,432,1352,418,1397,368,1403,344],[2812,376,2811,396,2792,388,2812,376,2836,369,2847,327,2825,334,2812,376],[926,-748,830,-763,738,-749,757,-713],[3125,-338,3121,-440,3202,-408,3195,-322,3153,-323,3125,-338],[1153,-96,1221,-30,1080,-5,972,-70,937,-63],[1080,-5,1020,24,959,46,982,73,1002,99],[1764,-667,1844,-680,1893,-691,1916,-681,1956,-715,1881,-721,1893,-691],[2416,-452,2468,-476,2450,-502,2408,-492,2416,-452],[2167,-837,3415,-814,3254,-774,2167,-837],[2698,-98,2670,27,2659,46,2637,126,2544,94,2477,20,2436,-37,2446,-47,2493,-106,2576,-157],[2544,94,2493,-106,2478,-166,2468,-185,2460,-200,2464,-234],[2659,46,2576,-157,2605,-250,2618,-299],[919,148,886,203,910,201,930,142,906,96,888,74,813,63,737,102],[746,17,736,24,728,56,725,70,727,89,737,102,741,135,761,154,774,156],[786,-82,811,-24,830,-3,813,63,838,99,888,74,852,-19,869,-97],[852,-19,841,-12,830,-3],[3064,-567,3112,-662,3022,-662,2831,-622,2758,-615,2721,-637,2664,-647,2808,-714,3001,-729,3112,-662,3216,-654],[3325,332,3408,302,3459,281,21,291,33,152,3462,152,3417,122,3404,108,3325,62,3260,99],[3462,152,3459,281,3425,246,3416,236,3318,253,3262,256],[561,323,585,319,597,358,595,400,563,426,557,478,541,482,511,499,462,535,427,559,436,528,473,496,474,449,470,410,478,396,463,388,447,397,449,410,470,410],[616,504,637,484,622,477,557,478],[473,496,410,492,259,507],[66,-423,165,-467,221,-433,228,-491,171,-552,165,-467,24,-457,66,-423],[1020,-619,875,-562,868,-511],[184,246,179,301,199,273,184,246,179,210,229,153,263,92,305,28,284,32,254,55,225,61,184,76,157,79,122,76,3598,69,3550,56,3520,64,3501,54,3493,33,3517,13,3555,18,3566,35,3550,56],[3493,33,3460,38],[3402,-270,3444,-296,3440,-325,3431,-329,3379,-323,3321,-330,3262,-330,3269,-309,3321,-330,3402,-270],[994,-432,1093,-371,1138,-284,1147,-268,1173,-249,1192,-229,1219,-243,1209,-400,1224,-473],[1173,-249,1170,-259,1160,-290,1138,-284],[1209,-400,1300,-353,1309,-332,1326,-277],[636,-625,641,-593,597,-614,560,-648,636,-625],[2950,180,2968,185,2997,195],[2953,175,2968,185],[2744,-368,2760,-344,2752,-298,2770,-254,2734,-211],[2907,-445,2910,-406,2857,-299,2814,-270,2770,-254],[2988,-419,2999,-353,2990,-263,2942,-249,2913,-245,2889,-253,2838,-263,2814,-270,2752,-298,2715,-304,2760,-344,2857,-299,2867,-277,2838,-263,2862,-217,2874,-210,2894,-190,2904,-178,2904,-160],[2862,-217,2844,-211,2835,-227,2838,-263],[2397,-261,2401,-226,2414,-198],[2401,-226,2453,-256,2474,-264,2490,-282,2525,-343,2530,-380,2536,-424,2580,-432,2643,-430,2669,-401,2656,-390,2634,-371],[147,-294,3572,-281,3497,-325,3532,-378],[2788,-82,2818,-47,2806,-91,2773,-146,2788,-82],[2365,154,2354,197,2372,181,2391,157,2365,154,2337,105,2361,64,2377,45,2436,-37],[2576,-157,2644,-154,2698,-98,2708,-82,2753,-29,2841,42],[1520,-4,1481,-81,1574,-27,1576,-6],[844,211,690,165,672,159,649,156,657,175,672,192,816,286],[649,156,602,125,518,97,608,60],[518,97,512,90,542,4],[2728,-460,2767,-460,2772,-491],[283,296,324,350,343,338,283,296],[2522,-690,2388,-634,2297,-687,2522,-690],[3346,-603,3494,-582,79,-630,50,-649,3600,-656,3368,-650,3346,-603],[1839,570,1659,618,1655,564,1785,537,1839,570,1935,560,2010,549,2069,493],[1785,537,1765,478,1696,331,1695,315],[1765,478,1674,445,1556,415],[1674,445,1543,429],[1659,618,1429,631,1276,607,1477,590,1655,564],[1655,564,1480,541,1432,517,1348,480],[1359,472,1432,517],[2360,778,2444,758,2302,718,2227,742,2360,778,2515,820,2631,866,380,893],[1312,-547,1405,-550,1492,-546,1617,-494,1537,-421,1427,-405,1370,-434,1224,-473],[1765,65,1777,18,1850,-7,1904,-14,1975,-55,2013,-112,2140,-60,2208,-57],[1955,110,1939,34,1904,-14],[1975,-55,2037,-6,2104,15,2216,19],[1356,-664,1264,-661,1220,-686,1092,-680,1072,-705,1220,-686,1356,-664],[2891,214,2922,247,2984,241,3003,278,3039,278]];
+const CONST_NAMES=[["Andromède",1,43,1],["Verseau",338,-5,2],["Aigle",291,8,1],["Bélier",42,22,1],["Cocher",82,37,1],["Bouvier",224,35,1],["Girafe",84,72,2],["Cancer",128,27,2],["Chiens de Chasse",192,43,2],["Grand Chien",98,-26,1],["Petit Chien",110,5,2],["Capricorne",315,-22,2],["Carène",144,-66,1],["Cassiopée",354,56,1],["Centaure",200,-40,1],["Céphée",338,71,2],["Baleine",28,-5,1],["Couronne Boréale",238,32,2],["Croix du Sud",194,-62,2],["Cygne",308,50,1],["Dragon",268,64,2],["Eridan",52,-18,1],["Gémeaux",107,24,1],["Hercule",254,35,2],["Hydre Femelle",150,-22,2],["Lion",159,15,1],["Balance",231,-26,2],["Lyre",279,30,2],["Licorne",115,-6,2],["Ophiuchus",258,3,2],["Orion",84,13,1],["Paon",297,-62,2],["Pégase",334,16,1],["Persée",66,45,1],["Phénix",16,-43,2],["Poissons",20,15,2],["Poisson Austral",333,-29,2],["Poupe",111,-46,2],["Sagittaire",292,-34,1],["Scorpion",249,-38,1],["Taureau",54,15,1],["Triangle Austral",240,-68,2],["Grande Ourse",165,48,1],["Petite Ourse",226,68,2],["Voiles",143,-46,2],["Vierge",200,-4,1]];
+// Planètes : éléments orbitaux moyens du JPL (« Approximate Positions of the Planets », valables de 1800 à 2050)
+// a (ua), e, i, L, ϖ, Ω (degrés) à J2000, chacun suivi de sa variation par siècle
+const EMB=[1.00000261,0.00000562,0.01671123,-0.00004392,-0.00001531,-0.01294668,100.46457166,35999.37244981,102.93768193,0.32327364,0,0];
+const PLAN=[
+  ['Mercure','#d8cfc2',[0.38709927,0.00000037,0.20563593,0.00001906,7.00497902,-0.00594749,252.25032350,149472.67411175,77.45779628,0.16047689,48.33076593,-0.12534081]],
+  ['Vénus','#fff6d8',[0.72333566,0.00000390,0.00677672,-0.00004107,3.39467605,-0.00078890,181.97909950,58517.81538729,131.60246718,0.00268329,76.67984255,-0.27769418]],
+  ['Mars','#ff8f6b',[1.52371034,0.00001847,0.09339410,0.00007882,1.84969142,-0.00813131,-4.55343205,19140.30268499,-23.94362959,0.44441088,49.55953891,-0.29257343]],
+  ['Jupiter','#ffe2b0',[5.20288700,-0.00011607,0.04838624,-0.00013253,1.30439695,-0.00183714,34.39644051,3034.74612775,14.72847983,0.21252668,100.47390909,0.20469106]],
+  ['Saturne','#f1d9a0',[9.53667594,-0.00125060,0.05386179,-0.00050991,2.48599187,0.00193609,49.95424423,1222.49362201,92.59887831,-0.41897216,113.66242448,-0.28867794]]
+];
+function helio(el,T){
+  const a=el[0]+el[1]*T, e=el[2]+el[3]*T, I=(el[4]+el[5]*T)*RAD, L=el[6]+el[7]*T, w=el[8]+el[9]*T, O=(el[10]+el[11]*T)*RAD;
+  const om=w*RAD-O, M=(mod(L-w+180,360)-180)*RAD;
+  let E=M+e*Math.sin(M); for(let k=0;k<8;k++)E-=(E-e*Math.sin(E)-M)/(1-e*Math.cos(E));   // équation de Kepler
+  const xp=a*(Math.cos(E)-e), yp=a*Math.sqrt(1-e*e)*Math.sin(E);
+  const co=Math.cos(om),so=Math.sin(om),cO=Math.cos(O),sO=Math.sin(O),cI=Math.cos(I),sI=Math.sin(I);
+  return [(co*cO-so*sO*cI)*xp+(-so*cO-co*sO*cI)*yp,(co*sO+so*cO*cI)*xp+(-so*sO+co*cO*cI)*yp,so*sI*xp+co*sI*yp];
+}
+// position géocentrique d’une planète : ascension droite et déclinaison rapportées à l’équinoxe du jour
+function planetEq(i,ms){
+  const d=ms/86400000+2440587.5-2451545.0, T=d/36525, p=helio(PLAN[i][2],T), e=helio(EMB,T);
+  const x=p[0]-e[0], y=p[1]-e[1], z=p[2]-e[2], dist=Math.hypot(x,y,z);
+  const lam=Math.atan2(y,x)+1.396971*T*RAD, bet=Math.asin(z/dist), eps=(23.439-4e-7*d)*RAD;   // précession : 1,397° par siècle
+  return {ra:Math.atan2(Math.sin(lam)*Math.cos(eps)-Math.tan(bet)*Math.sin(eps),Math.cos(lam)),
+    dec:Math.asin(Math.sin(bet)*Math.cos(eps)+Math.cos(bet)*Math.sin(eps)*Math.sin(lam)),dist,lam,gmst:mod(280.46061837+360.98564736629*d,360)};
+}
+// étoile de coordonnées J2000 → hauteur et azimut au lieu et à l’instant donnés (précession comprise)
+function starHzFn(t){
+  const n=t/86400000+2440587.5-2451545.0, eps=23.4393*RAD, p=1.396971*n/36525*RAD, lst=(mod(280.46061837+360.98564736629*n,360)+loc.lon)*RAD, ce=Math.cos(eps), se=Math.sin(eps);
+  return (ra,dec)=>{
+    const x=Math.cos(dec)*Math.cos(ra), y=Math.cos(dec)*Math.sin(ra), z=Math.sin(dec);
+    const ye=ce*y+se*z, ze=-se*y+ce*z, lam=Math.atan2(ye,x)+p, r=Math.hypot(x,ye);
+    const y2e=r*Math.sin(lam), y2=ce*y2e-se*ze, z2=se*y2e+ce*ze;
+    return hz(lst-Math.atan2(y2,r*Math.cos(lam)),Math.asin(clamp(z2,-1,1)));
+  };
+}
+function planetPos(i,ms){const q=planetEq(i,ms);return hz((q.gmst+loc.lon)*RAD-q.ra,q.dec);}
 // x = est, y = haut, -z = nord
 const dir=(alt,az,r)=>new THREE.Vector3(r*Math.cos(alt)*Math.sin(az),r*Math.sin(alt),-r*Math.cos(alt)*Math.cos(az));
 
@@ -268,6 +376,21 @@ function tubes(vs,group,rad,mA,mB){
 const ground=new THREE.Mesh(new THREE.CircleGeometry(R,96),new THREE.MeshBasicMaterial({color:0x1c3d45,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false}));
 ground.rotation.x=-Math.PI/2; scene.add(ground);
 scene.add(new THREE.Mesh(new THREE.SphereGeometry(R,48,24),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.07,side:THREE.BackSide,depthWrite:false})));
+// Voûte au-dessus de l’horizon : dégradé du ciel, plus clair vers l’horizon, lueur chaude du côté du soleil au lever et au coucher
+const domeGeo=new THREE.SphereGeometry(R*1.002,64,16,0,Math.PI*2,0,Math.PI/2);
+domeGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(domeGeo.attributes.position.count*3),3));
+const dome=new THREE.Mesh(domeGeo,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide,depthWrite:false})); scene.add(dome);
+const groundDay=new THREE.Color(0x24504f), groundNight=new THREE.Color(0x13272f);
+function paintDome(deg,az){
+  if(window.NO3D)return;
+  const P=domeGeo.attributes.position, C=domeGeo.attributes.color, z=ramp(ZEN,deg), h=ramp(HOR,deg), w=ramp(SKY,deg), sx=Math.sin(az), sz=-Math.cos(az), tw=clamp(1-Math.abs(deg-1)/9,0,1);
+  for(let i=0;i<P.count;i++){
+    const x=P.getX(i), y=clamp(P.getY(i)/R,0,1), zz=P.getZ(i), hr=Math.hypot(x,zz)||1, k=tw*Math.pow((x*sx+zz*sz)/hr*.5+.5,2), t=Math.pow(y,.7);
+    for(let j=0;j<3;j++){const hc=h[j]+(w[j]-h[j])*k; C.array[i*3+j]=(hc+(z[j]-hc)*t)/255;}
+  }
+  C.needsUpdate=true;
+  ground.material.color.copy(groundNight).lerp(groundDay,clamp((deg+6)/12,0,1));
+}
 scene.add(ring(R,0,0xffffff,1), ring(R*.66,0,0xffffff,.3), ring(R*.33,0,0xffffff,.3));
 [30,60].forEach(a=>{const r=R*Math.cos(a*RAD),y=R*Math.sin(a*RAD);scene.add(ring(r,y,0xffffff,.45),ring(r,-y,0x9fb0ff,.28));});
 const mer=f=>{const p=[];for(let i=0;i<=96;i++){const t=i/96*Math.PI*2;p.push(f(Math.cos(t)*R,Math.sin(t)*R));}return p;};
@@ -350,18 +473,30 @@ function buildMoonPath(){
 function updateMoon(t,sp){
   const on=show.moo, p=moonPos(t), v=dir(p.alt,p.az,R*.97), up=p.alt>=H0;
   moon.visible=mGlow.visible=moonLab.visible=on; if(moonGroup)moonGroup.visible=on;
-  $('app').classList.toggle('nomoon',!on);
   moon.position.copy(v); mGlow.position.copy(v); moonLab.position.copy(v).multiplyScalar(1.09); moonLab.position.y+=.75;
   moonMat.opacity=up?1:.45; moonMat.depthTest=!up; moon.renderOrder=up?6:0; paintMoon(moonPhase(t).k); mGlow.material.opacity=up?(sp.alt>0?.35:1):.15;
   moonSunDir.copy(dir(sp.alt,sp.az,1)); aimMoonLight();
-  if(!on)return p;
   const ph=moonPhase(t);
   $('mPhase').textContent=phaseName(ph.E)+', '+Math.round(ph.k*100)+' %';
   $('mRise').textContent=fmtT(mEvents.rise); $('mSet').textContent=fmtT(mEvents.set);
   const fd=x=>x==null?'—':new Date(x).toLocaleDateString('fr-FR',{timeZone:loc.tz,weekday:'short',day:'numeric',month:'short'})+' à '+fmtT(x);
   const key=Math.floor(t/3600000); if(key!==updateMoon.key){updateMoon.key=key;updateMoon.nf=nextPhase(t,180);updateMoon.nn=nextPhase(t,0);}
-  $('mNext').textContent='Hauteur '+fmtD(p.alt/RAD)+', azimut '+Math.round(p.az/RAD)+'° '+card[Math.round(p.az/RAD/45)%8]+' · Pleine lune : '+fd(updateMoon.nf)+' · Nouvelle lune : '+fd(updateMoon.nn);
+  $('mAlt').textContent=fmtD(p.alt/RAD); $('mAzi').textContent=Math.round(p.az/RAD)+'° '+card[Math.round(p.az/RAD/45)%8];
+  $('mDist').textContent=Math.round(moonEq(t).dist/1000)*1000+' km';
+  $('mNext').textContent='Prochaine pleine lune : '+fd(updateMoon.nf)+'. Prochaine nouvelle lune : '+fd(updateMoon.nn)+'.';
   return p;
+}
+// Planètes : position sur la voûte et tableau du panneau
+function updatePlanets(t,sp){
+  planG.visible=show.pla&&!window.NO3D;
+  const sv=v3(sp), sunDeg=sp.alt/RAD, rows=[];
+  PLAN.forEach(([n,c],i)=>{
+    const p=planetPos(i,t), up=p.alt>0, pv=v3(p), el=Math.acos(clamp(sv[0]*pv[0]+sv[1]*pv[1]+sv[2]*pv[2],-1,1))/RAD;
+    if(planG.visible){const o=planDots[i], v=dir(p.alt,p.az,R*.985); o.d.position.copy(v); o.d.material.opacity=up?1:.45; o.l.position.copy(v).multiplyScalar(1.07); o.l.position.y+=.55; o.l.material.opacity=up?1:.5;}
+    const rem=!up?'sous l’horizon':el<10?'noyée dans l’éclat du Soleil':sunDeg>H0/RAD?'levée, mais il fait jour':sunDeg>-6?'levée, au crépuscule':'dans le ciel de nuit';
+    rows.push('<li'+(up?'':' class="down"')+'><i style="background:'+c+'"></i><span class="n">'+n+'</span><span>'+fmtD(p.alt/RAD)+'</span><span>'+Math.round(p.az/RAD)+'° '+card[Math.round(p.az/RAD/45)%8]+'</span><span class="r">'+rem+'</span></li>');
+  });
+  const h=rows.join(''); if(h!==updatePlanets.h){updatePlanets.h=h;$('plist').innerHTML=h;}
 }
 
 // Gnomon et ombre
@@ -380,11 +515,50 @@ const gamDot=new THREE.Mesh(new THREE.SphereGeometry(.2,12,8),mk(0xff5fd2,1)); e
 const gamLab=label('γ point vernal',{size:.8,color:'#ff9be6',bg:true}); eclMarks.add(gamLab);
 const eclLab=label('écliptique',{size:.85,color:'#ff9be6',bg:true}); eclMarks.add(eclLab);
 
+// Étoiles et constellations : placées en coordonnées équatoriales dans un groupe que l’on fait tourner avec le ciel
+const starG=new THREE.Group(); starG.matrixAutoUpdate=false; scene.add(starG);
+const starMats=[], starLabs=[]; let constMat=null;
+{
+  const eqv=(ra,dec,r)=>new THREE.Vector3(r*Math.cos(dec)*Math.cos(ra),r*Math.cos(dec)*Math.sin(ra),r*Math.sin(dec));
+  const c=document.createElement('canvas'); c.width=c.height=32; const x=c.getContext('2d'), g=x.createRadialGradient(16,16,0,16,16,16);
+  g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(.4,'rgba(255,255,255,.95)'); g.addColorStop(1,'rgba(255,255,255,0)'); x.fillStyle=g; x.fillRect(0,0,32,32);
+  const tex=new THREE.CanvasTexture(c), tint=[[.78,.87,1],[1,1,.96],[1,.83,.66]];
+  const buckets=[[1.2,8],[2.4,5.5],[3.4,4],[9,2.8]];   // magnitude maximale, taille en pixels
+  const pos=buckets.map(()=>[]), col=buckets.map(()=>[]);
+  for(let i=0;i<STARS.length;i+=4){const m=STARS[i+2]/10,b=buckets.findIndex(q=>m<=q[0]),v=eqv(STARS[i]/10*RAD,STARS[i+1]/10*RAD,R*.995);pos[b].push(v.x,v.y,v.z);col[b].push(tint[STARS[i+3]][0],tint[STARS[i+3]][1],tint[STARS[i+3]][2]);}
+  buckets.forEach((q,b)=>{const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos[b],3));geo.setAttribute('color',new THREE.Float32BufferAttribute(col[b],3));
+    const m=new THREE.PointsMaterial({size:q[1],sizeAttenuation:false,map:tex,vertexColors:true,transparent:true,depthWrite:false});starMats.push(m);const P=new THREE.Points(geo,m);P.frustumCulled=false;starG.add(P);});
+  const seg=[];for(const ch of CONST_LINES)for(let i=0;i+3<ch.length;i+=2)seg.push(eqv(ch[i]/10*RAD,ch[i+1]/10*RAD,R*.995),eqv(ch[i+2]/10*RAD,ch[i+3]/10*RAD,R*.995));
+  constMat=new THREE.LineBasicMaterial({color:0x8fa6e8,transparent:true,opacity:.4,depthWrite:false});
+  const LS=new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seg),constMat); LS.frustumCulled=false; starG.add(LS);
+  for(const [n,ra,de] of STAR_NAMES){const l=label(n,{size:.5,color:'#f4f1e6'});l.position.copy(eqv(ra*RAD,de*RAD,R));l.center.set(.5,-.3);starG.add(l);starLabs.push(l);}
+  for(const [n,ra,de,rk] of CONST_NAMES){if(rk>1)continue;const l=label(n,{size:.6,color:'#a9bbf2'});l.position.copy(eqv(ra*RAD,de*RAD,R));l.userData.cn=true;starG.add(l);starLabs.push(l);}
+  starMats.forEach((m,i)=>{m.userData.sz=buckets[i][1];});
+}
+const _sb=[[0,0],[Math.PI/2,0],[0,Math.PI/2]];
+function updateStars(t,sunDeg){
+  starG.visible=show.sta&&!window.NO3D; if(!starG.visible)return;
+  const f=starHzFn(t), B=_sb.map(([a,d])=>{const q=f(a,d);return dir(q.alt,q.az,1);});
+  starG.matrix.makeBasis(B[0],B[1],B[2]); starG.matrixWorldNeedsUpdate=true;
+  const o=starVis(sunDeg);   // en plein jour, les étoiles restent là mais très pâles
+  // vue de l’extérieur : étoiles plus fines et seulement le nom des plus brillantes ; depuis le sol (boussole) : constellations nommées
+  const inside=immersive||compass;
+  starMats.forEach(m=>{m.opacity=o;m.size=m.userData.sz*(inside?1:.5);}); constMat.opacity=(inside?.45:.28)*o;
+  starLabs.forEach((l,i)=>{l.visible=inside||(!l.userData.cn&&i<11);l.material.opacity=.15+.8*(o-.16)/.84;});
+}
+// Planètes : un point coloré et son nom, sur la voûte
+const planG=new THREE.Group(); scene.add(planG);
+const planDots=PLAN.map(([n,c])=>{
+  const d=new THREE.Mesh(new THREE.SphereGeometry(.17,14,10),new THREE.MeshBasicMaterial({color:c,transparent:true})); planG.add(d);
+  const l=label(n,{size:.58,color:c,bg:true}); planG.add(l); return {d,l};
+});
+
 // Matériaux
 const matDay=mk(0xffc23d,1), matNight=mk(0x9db0ff,.85);
 const mSumA=mk(0xff7a8a,.95), mSumB=mk(0xff7a8a,.3), mEqA=mk(0xffffff,.85), mEqB=mk(0xffffff,.25), mWinA=mk(0x6fe0ff,.95), mWinB=mk(0x6fe0ff,.3), mAx=mk(0xc9a7ff,.95), mAxB=mk(0xc9a7ff,.35);
 
-const show={sea:false,axe:false,ana:false,gno:false,ecl:false,nxt:false,moo:true,lab:true};
+const show={sea:false,axe:false,ana:false,gno:false,ecl:false,nxt:false,moo:true,lab:true,sta:true,pla:true};
+const starVis=deg=>.16+.84*clamp(-deg/8,0,1);
 let seaGroup, axeGroup;
 function circleDec(dec){const vs=[];for(let i=0;i<=144;i++){const p=hz(i/144*2*Math.PI,dec*RAD);vs.push(dir(p.alt,p.az,R));}return vs;}
 function buildSky(){
@@ -409,12 +583,14 @@ function applyShow(){
   anaGroup.visible=show.ana; eclGroup.visible=show.ecl; eclMarks.visible=show.ecl; gnomon.visible=show.gno;
   eAxis.visible=show.axe; eEcl.visible=show.ecl; eSea.visible=show.sea; eGno.visible=show.gno;
   document.querySelectorAll('[data-k]').forEach(b=>b.setAttribute('aria-pressed',show[b.dataset.k]));
+  document.querySelectorAll('[data-k="sta"],[data-k="pla"]').forEach(b=>{b.hidden=earthMode;});
+  if(tm.max!=span()-1&&dayStart!=null){tm.max=span()-1;paintRibbon();}
   tm.max=span()-1; if(minute>span()-1){minute=span()-1;tm.value=Math.floor(minute);}
 }
 function span(){return dayLen+(show.nxt&&pano2d?1440:0);}
 
 // Trajectoire du jour
-let pathGroup, dayStart, dayLen=1440, stdOff=60, events={}, nextRS='rise';
+let pathGroup, dayStart=null, dayLen=1440, stdOff=60, events={};
 const dt=$('dt'), tm=$('tm');
 function buildPath(){
   clear(pathGroup); pathGroup=new THREE.Group(); scene.add(pathGroup); events={};
@@ -448,7 +624,28 @@ function buildPath(){
     if(h%3===0){const l=label(h+' h',{size:.8,color:up?'#fff3cf':'#b9c6ff',alpha:up?1:.8});l.position.copy(q.v).setLength(R*1.1);pathGroup.add(l);}
   }
   buildMoonPath();
-  nextRS='rise'; $('rs').textContent='Aller au lever'; initSeason();
+  initSeason(); fillTwilight(); paintRibbon();
+}
+// instants où le soleil franchit une hauteur donnée, en montant puis en descendant, dans la journée affichée
+function crossings(thr){
+  let up=null,dn=null,pa=sunPos(dayStart).alt;
+  for(let i=2;i<=dayLen;i+=2){const t1=dayStart+i*60000,a=sunPos(t1).alt;if(pa<thr&&a>=thr&&up==null)up=t1-120000*(a-thr)/(a-pa);if(pa>=thr&&a<thr)dn=t1-120000*(thr-a)/(pa-a);pa=a;}
+  return [up,dn];
+}
+function fillTwilight(){
+  const c=crossings(-6*RAD), a=crossings(-18*RAD), g=crossings(6*RAD);
+  $('twA').textContent=fmtT(c[0]); $('twB').textContent=fmtT(c[1]); $('twC').textContent=fmtT(a[0]); $('twD').textContent=fmtT(a[1]);
+  $('twE').textContent=events.rise!=null&&g[0]!=null&&g[0]>events.rise?fmtT(events.rise)+' – '+fmtT(g[0]):'—';
+  $('twF').textContent=events.set!=null&&g[1]!=null&&g[1]<events.set?fmtT(g[1])+' – '+fmtT(events.set):'—';
+}
+// ruban de la journée : couleur du ciel d’un bout à l’autre du curseur, et heures repères
+function paintRibbon(){
+  const S=span(), N=120, st=[];
+  for(let i=0;i<=N;i++)st.push(skyCss(sunPos(dayStart+i/N*S*60000).alt/RAD)+' '+(i/N*100).toFixed(2)+'%');
+  $('ribbon').style.background='linear-gradient(90deg,'+st.join(',')+')';
+  const tk=$('ticks'); tk.textContent='';
+  const stepH=S>1500?12:6;
+  for(let mn=0;mn<=S+1;mn+=stepH*60){const m=Math.min(mn,S), h=parts(dayStart+m*60000,loc.tz).hour, s=document.createElement('span');s.textContent=(mn>=S&&h===0?24:h)+' h';s.style.left=(m/S*100)+'%';tk.appendChild(s);}
 }
 
 // Ciel selon la hauteur du soleil
@@ -470,7 +667,7 @@ function update(min){
   const up=p.alt>=H0;
   sunMat.color.set(up?0xffd36a:0x9db0ff); glow.material.opacity=up?1:.3;
   rayPos.setXYZ(0,0,0,0); rayPos.setXYZ(1,v.x,0,v.z); rayPos.setXYZ(2,v.x,v.y,v.z); rayPos.needsUpdate=true;
-  scene.background=sky(deg);
+  paintDome(deg,p.az);
   // ombre du gnomon
   if(p.alt>0.5*RAD){
     const L=Math.min(GH/Math.tan(p.alt),R), dx=-Math.sin(p.az), dz=Math.cos(p.az);
@@ -494,8 +691,11 @@ function update(min){
   }
   const azd=p.az/RAD;
   const sn=seasonName(t);
-  $('phase').innerHTML=(up?'Jour':deg>-6?'Crépuscule civil':deg>-12?'Crépuscule nautique':deg>-18?'Crépuscule astronomique':'Nuit')+(sn?'<br><span class="sea">'+sn+'</span>':'');
-  $('clock').textContent=new Date(t).toLocaleString('fr-FR',{timeZone:loc.tz,weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+  $('phase').textContent=up?'Jour':deg>-6?'Crépuscule civil':deg>-12?'Crépuscule nautique':deg>-18?'Crépuscule astronomique':'Nuit';
+  $('sea').textContent=sn;
+  $('clock').textContent=fmtT(t);
+  $('date').textContent=new Date(t).toLocaleDateString('fr-FR',{timeZone:loc.tz,weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.documentElement.style.setProperty('--thumb',up?'#ffc23d':'#9db0ff');
   $('alt').textContent=fmtD(deg);
   $('azi').textContent=Math.round(azd)+'° '+card[Math.round(azd/45)%8];
   const d2=min>=dayLen, E2=d2?riseSet(dayStart+dayLen*60000,1440):null, Rr=d2?E2.r:events.rise, Ss=d2?E2.st:events.set;
@@ -504,7 +704,7 @@ function update(min){
   else if(events.allDown)$('len').textContent='0 h';
   else if(Rr&&Ss){let mn=Math.round((Ss-Rr)/60000);if(mn<0)mn+=1440;$('len').textContent=Math.floor(mn/60)+' h '+pad(mn%60);}
   else $('len').textContent='—';
-  updateMoon(t,p);
+  updateMoon(t,p); updateStars(t,deg); updatePlanets(t,p);
   if(pano2d)drawPano(t,p);
   if(map2d)drawMap(t);
   updateEarth(t,p);
@@ -683,6 +883,13 @@ $('earth').addEventListener('click',()=>{
 
 // Couleur du ciel sans la bibliothèque 3D (utilisée par le panorama et la courbe)
 const SKY=[[-18,[3,5,15]],[-12,[11,16,48]],[-6,[31,33,80]],[-1,[122,69,106]],[3,[224,136,74]],[10,[111,155,212]],[30,[63,127,201]]];
+// couleurs du zénith et de l’horizon (loin du soleil) selon la hauteur du soleil
+const ZEN=[[-18,[3,5,15]],[-6,[13,18,56]],[0,[34,54,110]],[8,[47,99,173]],[30,[42,108,192]]], HOR=[[-18,[3,5,15]],[-6,[26,34,80]],[0,[93,111,165]],[8,[143,180,223]],[30,[156,196,234]]];
+function ramp(S,a){
+  if(a<=S[0][0])return S[0][1];
+  for(let i=1;i<S.length;i++)if(a<=S[i][0]){const [a0,c0]=S[i-1],[a1,c1]=S[i],f=(a-a0)/(a1-a0);return c0.map((v,j)=>v+(c1[j]-v)*f);}
+  return S[S.length-1][1];
+}
 function skyCss(a){
   if(a<=SKY[0][0])return 'rgb('+SKY[0][1]+')';
   for(let i=1;i<SKY.length;i++)if(a<=SKY[i][0]){const [a0,c0]=SKY[i-1],[a1,c1]=SKY[i],f=(a-a0)/(a1-a0);return 'rgb('+c0.map((v,j)=>Math.round(v+(c1[j]-v)*f))+')';}
@@ -712,8 +919,13 @@ function drawPano(t,sp){
   const line=(pts,c,lw,dash)=>{px.strokeStyle=c;px.lineWidth=lw;px.setLineDash(dash||[]);px.beginPath();let pen=false,lx=0;
     for(const q of pts){if(!q){pen=false;continue;}const a=rel(q.az),d=q.alt/RAD;if(a<A0||a>A1||d<LO){pen=false;continue;}const x=X(a),y=Y(d);if(pen&&Math.abs(x-lx)<k*30)px.lineTo(x,y);else px.moveTo(x,y);pen=true;lx=x;}
     px.stroke();px.setLineDash([]);};
-  px.fillStyle=skyCss(sunPos(t).alt/RAD); px.fillRect(0,0,w,h);
-  px.fillStyle='rgba(18,44,50,.93)'; px.fillRect(0,Y(0),w,h-Y(0));
+  {const dg=sp.alt/RAD, css=c=>'rgb('+c.map(Math.round)+')', g=px.createLinearGradient(0,Y(90),0,Y(0));
+    g.addColorStop(0,css(ramp(ZEN,dg))); g.addColorStop(1,css(ramp(HOR,dg))); px.fillStyle=g; px.fillRect(0,0,w,h);
+    // lueur chaude du côté du soleil, autour du lever et du coucher
+    const tw=clamp(1-Math.abs(dg-1)/9,0,1), sa=rel(sp.az);
+    if(tw>0&&sa>=A0-40&&sa<=A1+40){const gx=X(sa),gy=Y(0),rr=k*75,rg=px.createRadialGradient(gx,gy,0,gx,gy,rr),c=ramp(SKY,dg).map(Math.round);
+      rg.addColorStop(0,'rgba('+c+','+(.9*tw).toFixed(2)+')'); rg.addColorStop(1,'rgba('+c+',0)'); px.fillStyle=rg; px.fillRect(0,0,w,Y(0));}}
+  px.fillStyle='rgb(18,40,46)'; px.fillRect(0,Y(0),w,h-Y(0));
   px.strokeStyle='rgba(255,255,255,.3)'; px.lineWidth=1; px.setLineDash([3,4]);
   [30,60].forEach(d=>{px.beginPath();px.moveTo(X(A0),Y(d));px.lineTo(X(A1),Y(d));px.stroke();});
   px.beginPath();px.moveTo(X(180),Y(0));px.lineTo(X(180),Y(HI));px.stroke(); px.setLineDash([]);
@@ -724,6 +936,19 @@ function drawPano(t,sp){
   txt('zénith',X(180)+6,Y(HI)+12,'rgba(255,255,255,.85)','left');
   txt((loc.lat>=0?'Face au sud. Pôle céleste nord':'Face au nord. Pôle céleste sud')+' derrière vous, à '+Math.abs(loc.lat).toFixed(1).replace('.',',')+'° de hauteur.',X(A0),h-8,'rgba(255,255,255,.85)','left');
   if(window.NO3D)txt('Vue 3D indisponible (bibliothèque 3D non chargée)',w-8,16,'#ffd36a','right','500 11px');
+  if(show.sta){
+    const f=starHzFn(t), o=starVis(sp.alt/RAD), tints=['#c8dcff','#fffdf2','#ffd4a8'];
+    px.globalAlpha=.5*o; for(const ch of CONST_LINES){const ps=[];for(let i=0;i<ch.length;i+=2){const q=f(ch[i]/10*RAD,ch[i+1]/10*RAD);ps.push(q.alt>0?q:null);}line(ps,'#8fa6e8',1);}
+    px.globalAlpha=o;
+    for(let i=0;i<STARS.length;i+=4){const q=f(STARS[i]/10*RAD,STARS[i+1]/10*RAD);if(q.alt<=0)continue;const a=rel(q.az);if(a<A0||a>A1)continue;
+      const m=STARS[i+2]/10;px.fillStyle=tints[STARS[i+3]];px.beginPath();px.arc(X(a),Y(q.alt/RAD),m<=1.2?2.6:m<=2.4?1.9:m<=3.4?1.3:.9,0,7);px.fill();}
+    px.globalAlpha=.2+.8*(o-.16)/.84;
+    // noms : les étoiles d’abord, puis les constellations, sans chevauchement
+    const boxes=[], put=(n,x,y,c)=>{px.font='500 10px '+F;const hw=px.measureText(n).width/2+4;if(boxes.some(b=>Math.abs(b[0]-x)<b[2]+hw&&Math.abs(b[1]-y)<14))return;boxes.push([x,y,hw]);txt(n,x,y,c,'center','500 10px');};
+    for(const [n,ra,de] of STAR_NAMES){const q=f(ra*RAD,de*RAD),a=rel(q.az);if(q.alt>2*RAD&&a>A0+12&&a<A1-12)put(n,X(a),Y(q.alt/RAD)-6,'#f4f1e6');}
+    for(const [n,ra,de,rk] of CONST_NAMES){if(rk>1)continue;const q=f(ra*RAD,de*RAD),a=rel(q.az);if(q.alt>4*RAD&&a>A0+12&&a<A1-12)put(n,X(a),Y(q.alt/RAD),'#a9bbf2');}
+    px.globalAlpha=1;
+  }
   if(show.sea)[[23.44,'#ff7a8a'],[0,'#ffffff'],[-23.44,'#6fe0ff']].forEach(([d,c])=>{const ps=[];for(let i=0;i<=180;i++)ps.push(hz(i/180*2*Math.PI,d*RAD));line(ps,c,1.6);});
   if(show.ana){const yr=parts(t,loc.tz).year,msDay=mod(t+stdOff*60000,86400000),base=Date.UTC(yr,0,1)+msDay-stdOff*60000,ps=[];for(let i=0;i<=73;i++)ps.push(sunPos(base+(i%73)*5*86400000));line(ps,'#b6f09c',2.2);}
   if(show.ecl){const n=t/86400000+2440587.5-2451545.0,eps=(23.439-4e-7*n)*RAD,lst=(mod(280.46061837+360.98564736629*n,360)+loc.lon)*RAD,ps=[];
@@ -750,6 +975,8 @@ function drawPano(t,sp){
       drawMoon2D(px,mx,my,9,moonPhase(t).k,ang,mp.alt<H0); txt('Lune',mx,my-15,'#e3e9f5');
     }
   }
+  if(show.pla)PLAN.forEach(([n,c],i)=>{const q=planetPos(i,t),qa=rel(q.az),qd=q.alt/RAD;if(qa<A0||qa>A1||qd<LO)return;
+    const x=X(qa),y=Y(qd);px.globalAlpha=q.alt>0?1:.5;px.fillStyle=c;px.beginPath();px.arc(x,y,3.6,0,7);px.fill();px.strokeStyle='rgba(5,8,20,.7)';px.lineWidth=1;px.stroke();txt(n,x,y+15,c,'center','600 11px');px.globalAlpha=1;});
   const a=rel(sp.az),d=sp.alt/RAD;
   if(a>=A0&&a<=A1&&d>=LO){const x=X(a),y=Y(d),up=sp.alt>=H0,g=px.createRadialGradient(x,y,0,x,y,32);
     g.addColorStop(0,up?'rgba(255,214,120,.95)':'rgba(157,176,255,.55)');g.addColorStop(1,'rgba(255,200,80,0)');
@@ -1048,8 +1275,8 @@ if(window.NO3D)document.querySelectorAll('[data-v="sky"],[data-v="pano3"],[data-
 // Contrôles
 function today(){const now=Date.now(),p=parts(now,loc.tz);dt.value=p.year+'-'+pad(p.month)+'-'+pad(p.day);return now;}
 function goNow(){const now=today();buildPath();minute=clamp((now-dayStart)/60000,0,dayLen-1);tm.value=Math.floor(minute);update(minute);}
-function nextDay(){
-  const [y,m,d]=dt.value.split('-').map(Number), n=new Date(Date.UTC(y,m-1,d+1));
+function nextDay(k){
+  const [y,m,d]=dt.value.split('-').map(Number), n=new Date(Date.UTC(y,m-1,d+(k||1)));
   dt.value=n.getUTCFullYear()+'-'+pad(n.getUTCMonth()+1)+'-'+pad(n.getUTCDate());
   buildPath(); minute=Math.min(minute,dayLen-1); tm.value=Math.floor(minute); update(minute);
 }
@@ -1084,16 +1311,19 @@ $('season').addEventListener('click',()=>{
   minute=Math.min(minute,dayLen-1); tm.value=Math.floor(minute); update(minute);
 });
 $('now').addEventListener('click',()=>{setPlay(false);setYear(false);goNow();});
-const RS_ORDER=['rise','noon','set'], RS_TXT={rise:'Aller au lever',noon:'Aller au midi solaire',set:'Aller au coucher'};
-$('rs').addEventListener('click',()=>{
-  let k=nextRS, n=0;
-  while(events[k]==null&&n<3){k=RS_ORDER[(RS_ORDER.indexOf(k)+1)%3];n++;}
-  const t=events[k]; if(t==null)return;
+// toucher Lever, Midi solaire ou Coucher place le curseur à cet instant
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{
+  const t=events[b.dataset.go]; if(t==null)return;
   setPlay(false); setYear(false);
-  minute=(t-dayStart)/60000; tm.value=Math.floor(minute); update(minute);
-  nextRS=RS_ORDER[(RS_ORDER.indexOf(k)+1)%3];
-  $('rs').textContent=RS_TXT[nextRS];
-});
+  minute=clamp((t-dayStart)/60000,0,dayLen-1); tm.value=Math.floor(minute); update(minute);
+}));
+$('prev').addEventListener('click',()=>{setPlay(false);setYear(false);nextDay(-1);});
+$('next').addEventListener('click',()=>{setPlay(false);setYear(false);nextDay(1);});
+// onglets du panneau
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(o=>o.setAttribute('aria-selected',o===b));
+  document.querySelectorAll('.tab').forEach(s=>{s.hidden=s.dataset.p!==b.dataset.t;});
+}));
 document.querySelectorAll('[data-k]').forEach(b=>b.addEventListener('click',()=>{show[b.dataset.k]=!show[b.dataset.k];applyShow();update(minute);}));
 
 // Lieu
