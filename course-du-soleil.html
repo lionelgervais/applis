@@ -202,7 +202,7 @@ details .stats{margin-top:6px}
 <p class="note">Ruban de la journée : sous l’heure, la bande colorée montre la couleur du ciel du matin au soir (nuit, crépuscules, jour) ; le curseur rond est le soleil. Touchez Lever, Midi solaire ou Coucher pour y placer le curseur.</p>
 <p class="note">Lune : sa trajectoire est tracée en gris argenté (pointillés sous l’horizon) sur environ 24 h 50, le temps qu’elle revienne au même endroit du ciel ; les deux bouts ne se rejoignent pas exactement, car la Lune monte un peu plus haut ou un peu moins haut chaque jour et son disque montre la phase réelle, côté éclairé tourné vers le Soleil. Positions calculées avec une théorie simplifiée, parallaxe comprise : quelques minutes d’écart possibles sur le lever et le coucher. Dans la vue Terre, l’orbite de la Lune n’est pas à l’échelle : elle montre pourquoi la Lune est pleine à l’opposé du Soleil et nouvelle de son côté.</p>
 <p class="note">Étoiles et planètes : les 726 étoiles les plus brillantes (jusqu’à la magnitude 4,3, catalogue Hipparcos) et les principales constellations tournent avec le ciel. Elles sont bien là en plein jour, mais noyées dans la lumière du Soleil : l’appli les montre alors très pâles. Dans le Ciel 3D vu de l’extérieur, la voûte est une sphère transparente : les constellations situées du côté de l’observateur apparaissent inversées, comme sur un globe céleste ; elles ont leur aspect réel dans le Ciel 2D et avec la Boussole.</p>
-<p class="note">Ciel 2D : le ciel déroulé à plat, face au sud. Boussole (sur téléphone ou tablette, depuis une adresse https) : vous êtes au centre du ciel, à hauteur des yeux, et la vue 3D suit l’orientation de l’appareil ; tenez-le devant vous pour voir la trajectoire du soleil dans la vraie direction du ciel. Pincez pour zoomer. Si le nord semble décalé, décrivez un 8 avec le téléphone pour calibrer sa boussole, et éloignez-vous des objets métalliques.</p>
+<p class="note">Ciel 2D : le ciel déroulé à plat, face au sud. La figure s’arrête un peu au-dessus de la plus grande hauteur que le soleil peut atteindre à la latitude du lieu (90° − latitude + 23,4°, soit 64,6° à Port-Blanc au solstice de juin) et ne montre presque rien sous l’horizon. L’échelle des hauteurs y est agrandie par rapport à celle des azimuts (jusqu’à 4 fois) : les trajectoires et les constellations paraissent donc étirées en hauteur. Boussole (sur téléphone ou tablette, depuis une adresse https) : vous êtes au centre du ciel, à hauteur des yeux, et la vue 3D suit l’orientation de l’appareil ; tenez-le devant vous pour voir la trajectoire du soleil dans la vraie direction du ciel. Pincez pour zoomer. Si le nord semble décalé, décrivez un 8 avec le téléphone pour calibrer sa boussole, et éloignez-vous des objets métalliques.</p>
 <p class="note">Carte : la partie claire est éclairée par le Soleil, les bandes de plus en plus sombres sont les crépuscules civil (soleil jusqu’à 6° sous l’horizon), nautique (12°) et astronomique (18°), puis la nuit. Le point jaune marque l’endroit où le Soleil est au zénith ; la bande de droite donne la durée du jour pour chaque latitude, alignée avec la carte. Toucher la carte choisit ce lieu comme point d’observation.</p>
 </details>
 </div>
@@ -911,9 +911,11 @@ new ResizeObserver(resizePano).observe(pano);
 function drawPano(t,sp){
   const w=pano.clientWidth,h=pano.clientHeight; if(!w||!h)return;
   if(show.nxt){drawCourbe(t);return;}
-  const face=loc.lat>=0?180:0, A0=35,A1=325,LO=-25,HI=90,m=22;
-  const k=Math.min((w-2*m)/(A1-A0),(h-2*m-24)/(HI-LO)), ox=(w-k*(A1-A0))/2, oy=m+8+k*HI;
-  const rel=az=>mod(az/RAD-face+180,360), X=a=>ox+(a-A0)*k, Y=d=>oy-d*k;
+  // HI : haut de la figure, juste au-dessus de la plus grande hauteur que le soleil peut atteindre à cette latitude (90° − latitude + 23,44°)
+  const face=loc.lat>=0?180:0, A0=35,A1=325,m=22, HI=Math.min(90,Math.ceil((90-Math.abs(loc.lat)+23.44+3)/5)*5), top=m+8, bot=44;
+  // k : pixels par degré d’azimut ; ky : pixels par degré de hauteur, agrandi (jusqu’à 4 fois) pour occuper la hauteur disponible
+  const k=Math.min((w-2*m)/(A1-A0),(h-top-bot)/HI), ky=clamp((h-top-bot)/HI,k,k*4), ox=(w-k*(A1-A0))/2, oy=top+ky*HI, LO=-4/ky;   // sous l’horizon : une bande étroite, pour les points cardinaux
+  const rel=az=>mod(az/RAD-face+180,360), X=a=>ox+(a-A0)*k, Y=d=>oy-d*ky;
   const F='"Instrument Sans",system-ui,sans-serif';
   const txt=(s,x,y,c,al,f)=>{px.font=(f||'500 12px')+' '+F;px.textAlign=al||'center';px.lineWidth=3;px.strokeStyle='rgba(5,8,20,.6)';px.strokeText(s,x,y);px.fillStyle=c||'#fff';px.fillText(s,x,y);};
   const line=(pts,c,lw,dash)=>{px.strokeStyle=c;px.lineWidth=lw;px.setLineDash(dash||[]);px.beginPath();let pen=false,lx=0;
@@ -927,13 +929,15 @@ function drawPano(t,sp){
       rg.addColorStop(0,'rgba('+c+','+(.9*tw).toFixed(2)+')'); rg.addColorStop(1,'rgba('+c+',0)'); px.fillStyle=rg; px.fillRect(0,0,w,Y(0));}}
   px.fillStyle='rgb(18,40,46)'; px.fillRect(0,Y(0),w,h-Y(0));
   px.strokeStyle='rgba(255,255,255,.3)'; px.lineWidth=1; px.setLineDash([3,4]);
-  [30,60].forEach(d=>{px.beginPath();px.moveTo(X(A0),Y(d));px.lineTo(X(A1),Y(d));px.stroke();});
+  const gst=ky*15>=26?15:30;
+  for(let d=gst;d<HI;d+=gst){px.strokeStyle=d%30?'rgba(255,255,255,.16)':'rgba(255,255,255,.3)';px.beginPath();px.moveTo(X(A0),Y(d));px.lineTo(X(A1),Y(d));px.stroke();}
+  px.strokeStyle='rgba(255,255,255,.3)';
   px.beginPath();px.moveTo(X(180),Y(0));px.lineTo(X(180),Y(HI));px.stroke(); px.setLineDash([]);
   px.strokeStyle='#fff'; px.lineWidth=2; px.beginPath(); px.moveTo(0,Y(0)); px.lineTo(w,Y(0)); px.stroke();
   const names=['N','NE','E','SE','S','SO','O','NO'];
   for(let i=0;i<8;i++){const a=rel(i*45*RAD);if(a>=A0&&a<=A1)txt(names[i],X(a),Y(0)+17,'#fff','center',Math.round(a)===180?'600 14px':'500 12px');}
-  txt('30°',X(A0),Y(30)-4,'rgba(255,255,255,.85)','left'); txt('60°',X(A0),Y(60)-4,'rgba(255,255,255,.85)','left');
-  txt('zénith',X(180)+6,Y(HI)+12,'rgba(255,255,255,.85)','left');
+  for(let d=gst;d<HI;d+=gst)txt(d+'°',X(A0),Y(d)-4,d%30?'rgba(255,255,255,.7)':'rgba(255,255,255,.95)','left',d%30?'500 12px':'600 13px');
+  txt(HI===90?'zénith':'méridien',X(180)+6,Y(HI)+12,'rgba(255,255,255,.85)','left');
   txt((loc.lat>=0?'Face au sud. Pôle céleste nord':'Face au nord. Pôle céleste sud')+' derrière vous, à '+Math.abs(loc.lat).toFixed(1).replace('.',',')+'° de hauteur.',X(A0),h-8,'rgba(255,255,255,.85)','left');
   if(window.NO3D)txt('Vue 3D indisponible (bibliothèque 3D non chargée)',w-8,16,'#ffd36a','right','500 11px');
   if(show.sta){
@@ -965,7 +969,7 @@ function drawPano(t,sp){
     // heures sur la trajectoire de la Lune : un point par heure, l’heure écrite toutes les 2 h (sous la courbe, pour ne pas gêner celles du soleil)
     for(let hh=0;hh*60<dayLen;hh++){const q=ms[hh*6];if(!q)continue;const qa=rel(q.az),qd=q.alt/RAD;if(qa<A0||qa>A1||qd<LO)continue;
       const x=X(qa),y=Y(qd),up=q.alt>=H0;px.fillStyle=up?'#eef2f8':'rgba(214,222,236,.6)';px.beginPath();px.arc(x,y,2.3,0,7);px.fill();
-      const lh=parts(dayStart+hh*3600000,loc.tz).hour; if(lh%2===0&&qd>-12)txt(lh+' h',x,y+15,up?'#e3e9f5':'rgba(214,222,236,.75)','center','500 11px');}
+      const lh=parts(dayStart+hh*3600000,loc.tz).hour; if(lh%2===0&&y+15<Y(0)-3)txt(lh+' h',x,y+15,up?'#e3e9f5':'rgba(214,222,236,.75)','center','500 11px');}
     {const q=ms[ms.length-1], ea=rel(q.az), ed=q.alt/RAD; if(ea>=A0&&ea<=A1&&ed>=LO)txt(fmtT(dayStart+mLoop*60000)+' le lendemain',X(ea),Y(ed)-9,'rgba(214,222,236,.8)','center','500 11px');}
     const mp=moonPos(t), ma=rel(mp.az), md=mp.alt/RAD;
     if(ma>=A0&&ma<=A1&&md>=LO){
@@ -978,10 +982,10 @@ function drawPano(t,sp){
   if(show.pla)PLAN.forEach(([n,c],i)=>{const q=planetPos(i,t),qa=rel(q.az),qd=q.alt/RAD;if(qa<A0||qa>A1||qd<LO)return;
     const x=X(qa),y=Y(qd);px.globalAlpha=q.alt>0?1:.5;px.fillStyle=c;px.beginPath();px.arc(x,y,3.6,0,7);px.fill();px.strokeStyle='rgba(5,8,20,.7)';px.lineWidth=1;px.stroke();txt(n,x,y+15,c,'center','600 11px');px.globalAlpha=1;});
   const a=rel(sp.az),d=sp.alt/RAD;
-  if(a>=A0&&a<=A1&&d>=LO){const x=X(a),y=Y(d),up=sp.alt>=H0,g=px.createRadialGradient(x,y,0,x,y,32);
+  if(a>=A0&&a<=A1&&d>=Math.min(LO,-1.5)){const x=X(a),y=Y(d),up=sp.alt>=H0,g=px.createRadialGradient(x,y,0,x,y,32);
     g.addColorStop(0,up?'rgba(255,214,120,.95)':'rgba(157,176,255,.55)');g.addColorStop(1,'rgba(255,200,80,0)');
     px.fillStyle=g;px.beginPath();px.arc(x,y,32,0,7);px.fill();px.fillStyle=up?'#ffd36a':'#9db0ff';px.beginPath();px.arc(x,y,9,0,7);px.fill();}
-  else txt('Le soleil est hors du champ de vue (derrière vous ou loin sous l’horizon).',w/2,m+4,'#fff');
+  else if(d>=LO)txt('Le soleil est derrière vous, hors du champ de vue.',w/2,m+4,'#fff');
 }
 // Courbe de la hauteur du soleil sur deux jours consécutifs
 function drawCourbe(t){
@@ -1265,6 +1269,9 @@ function setView(v){
     else if(v==='pano3'){immersive=true; cFov=FOV0; IM.yaw=loc.lat>=0?Math.PI:0; IM.pitch=.25;}
   }
   curView=v;
+  // Ciel 2D : la figure occupe déjà toute la hauteur, le bouton Zoom n’y est pas proposé
+  if(v==='pano2'&&$('panel').classList.contains('mini'))$('mini').click();
+  $('mini').hidden=v==='pano2';
   document.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
   $('compass').hidden=!canCompass;
   update(minute);
